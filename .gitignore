@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Testing
+coverage/
+htmlcov/
+.pytest_cache/
+.coverage
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/
+
+# Kubernetes secrets (never commit)
+k8s/base/secrets.yaml
+k8s/overlays/*/secrets.yaml
