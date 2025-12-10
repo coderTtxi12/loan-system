@@ -1,7 +1,22 @@
 """Database Models Package."""
+from app.models.audit import ActorType, AuditAction, AuditLog
 from app.models.base import BaseModel
+from app.models.job import AsyncJob, JobStatus
+from app.models.loan import LoanApplication, LoanStatus
+from app.models.loan_status_history import LoanStatusHistory
 
-__all__ = ["BaseModel"]
-
-# Import all models here for Alembic to detect them
-# from app.models.loan import LoanApplication  # Uncomment in Commit 4
+__all__ = [
+    # Base
+    "BaseModel",
+    # Loan
+    "LoanApplication",
+    "LoanStatus",
+    "LoanStatusHistory",
+    # Audit
+    "AuditLog",
+    "AuditAction",
+    "ActorType",
+    # Jobs
+    "AsyncJob",
+    "JobStatus",
+]
