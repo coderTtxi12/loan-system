@@ -51,13 +51,13 @@ class NotFoundError(BaseAPIException):
         )
 
 
-class CreditNotFoundError(NotFoundError):
-    """Raised when a credit application is not found."""
+class LoanNotFoundError(NotFoundError):
+    """Raised when a loan application is not found."""
 
-    def __init__(self, credit_id: str):
+    def __init__(self, loan_id: str):
         super().__init__(
-            message=f"Credit application {credit_id} not found",
-            details={"credit_id": credit_id},
+            message=f"Loan application {loan_id} not found",
+            details={"loan_id": loan_id},
         )
 
 
