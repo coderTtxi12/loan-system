@@ -8,3 +8,4 @@ export { default as RealTimeIndicator } from './RealTimeIndicator';
 export { default as LoanInfo } from './LoanInfo';
 export { default as StatusTimeline } from './StatusTimeline';
 export { default as StatusChangeModal } from './StatusChangeModal';
+export { default as LoanForm } from './LoanForm';

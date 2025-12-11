@@ -1,0 +1,8 @@
+# Kubernetes Namespace for Loan System
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: loan-system
+  labels:
+    app.kubernetes.io/name: loan-system
+    app.kubernetes.io/part-of: loan-system

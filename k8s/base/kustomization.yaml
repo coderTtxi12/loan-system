@@ -1,0 +1,52 @@
+# Kustomization file for base Kubernetes resources
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: loan-system-base
+
+# Namespace for all resources
+namespace: loan-system
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: loan-system
+  app.kubernetes.io/managed-by: kustomize
+
+# Resources to include
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  # Backend resources (to be added in Commit 36)
+  # - backend/deployment.yaml
+  # - backend/service.yaml
+  # - backend/hpa.yaml
+  # Frontend resources (to be added in Commit 37)
+  # - frontend/deployment.yaml
+  # - frontend/service.yaml
+  # Workers resources (to be added in Commit 37)
+  # - workers/deployment.yaml
+  # Ingress (to be added in Commit 38)
+  # - ingress.yaml
+
+# Image configuration (can be overridden in overlays)
+# images:
+#   - name: loan-api
+#     newName: your-registry.com/loan-api
+#     newTag: latest
+#   - name: loan-frontend
+#     newName: your-registry.com/loan-frontend
+#     newTag: latest
+
+# Config transformers
+# configMapGenerator:
+#   - name: additional-config
+#     literals:
+#       - key=value
+
+# Secret generators (for dev/testing only)
+# secretGenerator:
+#   - name: test-secrets
+#     literals:
+#       - password=test

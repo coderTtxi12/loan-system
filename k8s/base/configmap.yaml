@@ -1,0 +1,42 @@
+# ConfigMap for Loan System configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loan-system-config
+  namespace: loan-system
+  labels:
+    app.kubernetes.io/name: loan-system
+    app.kubernetes.io/component: config
+data:
+  # Environment
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  LOG_LEVEL: "INFO"
+  
+  # API Configuration
+  API_V1_PREFIX: "/api/v1"
+  CORS_ORIGINS: "https://loan.example.com"
+  
+  # Database (host only, credentials in secrets)
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "loans_db"
+  
+  # Redis (host only)
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Feature Flags
+  FEATURE_REAL_TIME_UPDATES: "true"
+  FEATURE_RISK_AUTO_EVALUATION: "true"
+  FEATURE_WEBHOOK_NOTIFICATIONS: "true"
+  
+  # Rate Limiting
+  RATE_LIMIT_PER_MINUTE: "100"
+  
+  # Workers Configuration
+  WORKER_POLL_INTERVAL: "1.0"
+  WORKER_LOCK_TIMEOUT: "300"
+  
+  # Supported Countries
+  SUPPORTED_COUNTRIES: "ES,MX,CO,BR"

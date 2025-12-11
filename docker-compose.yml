@@ -53,37 +53,113 @@ services:
     profiles:
       - tools
 
-  # Backend API (uncomment when Dockerfile is ready)
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: loan-api
-  #   ports:
-  #     - "8000:8000"
-  #   environment:
-  #     - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
-  #     - REDIS_URL=redis://redis:6379/0
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
-  #   networks:
-  #     - loan-network
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: loan-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
+      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - loan-network
+    restart: unless-stopped
 
-  # Frontend (uncomment when Dockerfile is ready)
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   container_name: loan-frontend
-  #   ports:
-  #     - "5173:80"
-  #   depends_on:
-  #     - backend
-  #   networks:
-  #     - loan-network
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: loan-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - loan-network
+    restart: unless-stopped
+
+  # Worker - Risk Evaluation
+  worker-risk:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.workers
+    container_name: loan-worker-risk
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
+      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - WORKER_QUEUE=risk_evaluation
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - loan-network
+    restart: unless-stopped
+
+  # Worker - Audit
+  worker-audit:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.workers
+    container_name: loan-worker-audit
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
+      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - WORKER_QUEUE=audit
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - loan-network
+    restart: unless-stopped
+
+  # Worker - Webhook/Notifications
+  worker-webhook:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.workers
+    container_name: loan-worker-webhook
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
+      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+      - WORKER_QUEUE=notifications
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - loan-network
+    restart: unless-stopped
 
 networks:
   loan-network:
