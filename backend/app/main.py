@@ -3,13 +3,17 @@ import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+import socketio
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1.router import api_router
+from app.core.cache import cache
 from app.core.config import settings
 from app.core.exceptions import BaseAPIException
+from app.sockets.handlers import sio
+from app.sockets.pg_listener import start_pg_listener, stop_pg_listener
 
 # Configure logging
 logging.basicConfig(
@@ -31,16 +35,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info(f"Environment: {settings.ENVIRONMENT}")
     logger.info(f"Debug mode: {settings.DEBUG}")
 
-    # TODO: Initialize database connection pool in Commit 3
-    # TODO: Initialize Redis connection in Commit 16
-    # TODO: Start PostgreSQL LISTEN for real-time in Commit 17
+    # Initialize Redis cache
+    try:
+        await cache.connect()
+        logger.info("Redis cache connected")
+    except Exception as e:
+        logger.warning(f"Redis cache not available: {e}")
+
+    # Start PostgreSQL LISTEN for real-time updates
+    try:
+        await start_pg_listener()
+        logger.info("PostgreSQL listener started")
+    except Exception as e:
+        logger.warning(f"PostgreSQL listener not available: {e}")
 
     yield
 
     # Shutdown
     logger.info("Shutting down application...")
-    # TODO: Close database connections
-    # TODO: Close Redis connections
+
+    # Stop PostgreSQL listener
+    try:
+        await stop_pg_listener()
+    except Exception as e:
+        logger.warning(f"Error stopping PostgreSQL listener: {e}")
+
+    # Disconnect Redis cache
+    try:
+        await cache.disconnect()
+    except Exception as e:
+        logger.warning(f"Error disconnecting Redis: {e}")
 
 
 # Create FastAPI application
@@ -126,4 +150,12 @@ async def root() -> dict:
         "version": settings.APP_VERSION,
         "docs": "/docs",
         "health": f"{settings.API_V1_PREFIX}/health",
+        "websocket": "/socket.io",
     }
+
+
+# Configure Socket.IO CORS
+sio.eio.cors_allowed_origins = settings.cors_origins_list
+
+# Create combined ASGI app with Socket.IO
+socket_app = socketio.ASGIApp(sio, app)
