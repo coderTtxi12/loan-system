@@ -20,6 +20,7 @@ from app.models.audit import AuditLog  # noqa: E402
 from app.models.job import AsyncJob  # noqa: E402
 from app.models.loan import LoanApplication  # noqa: E402
 from app.models.loan_status_history import LoanStatusHistory  # noqa: E402
+from app.models.user import User  # noqa: E402
 
 # Alembic Config object
 config = context.config

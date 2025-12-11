@@ -4,10 +4,14 @@ from app.models.base import BaseModel
 from app.models.job import AsyncJob, JobStatus
 from app.models.loan import LoanApplication, LoanStatus
 from app.models.loan_status_history import LoanStatusHistory
+from app.models.user import User, UserRole
 
 __all__ = [
     # Base
     "BaseModel",
+    # User
+    "User",
+    "UserRole",
     # Loan
     "LoanApplication",
     "LoanStatus",
