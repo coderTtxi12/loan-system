@@ -5,6 +5,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import loansReducer from './slices/loansSlice';
 import uiReducer from './slices/uiSlice';
+import { socketMiddleware } from './middleware/socketMiddleware';
 
 export const store = configureStore({
   reducer: {
@@ -18,7 +19,7 @@ export const store = configureStore({
         // Ignore these action types for serialization check
         ignoredActions: ['persist/PERSIST'],
       },
-    }),
+    }).concat(socketMiddleware),
   devTools: import.meta.env.DEV,
 });
 
