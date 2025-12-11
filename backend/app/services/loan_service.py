@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import CacheKeys, get_cache
 from app.core.exceptions import (
     CountryNotSupportedError,
     LoanNotFoundError,
@@ -18,6 +19,11 @@ from app.repositories.loan_repository import LoanRepository
 from app.strategies import BankingInfo, StrategyRegistry, ValidationResult
 
 logger = logging.getLogger(__name__)
+
+# Cache TTL constants (in seconds)
+CACHE_TTL_LOAN = 300  # 5 minutes for individual loans
+CACHE_TTL_LIST = 60  # 1 minute for list queries
+CACHE_TTL_STATS = 120  # 2 minutes for statistics
 
 
 # Valid status transitions
@@ -238,6 +244,7 @@ class LoanService:
         self,
         loan_id: UUID,
         include_history: bool = False,
+        use_cache: bool = True,
     ) -> LoanApplication:
         """
         Get a loan application by ID.
@@ -245,6 +252,7 @@ class LoanService:
         Args:
             loan_id: The loan UUID
             include_history: Whether to load status history
+            use_cache: Whether to use cache
 
         Returns:
             LoanApplication
@@ -252,11 +260,42 @@ class LoanService:
         Raises:
             LoanNotFoundError: If loan not found
         """
+        cache_key = CacheKeys.loan(str(loan_id))
+
+        # Try cache first
+        if use_cache:
+            try:
+                cache = await get_cache()
+                cached = await cache.get(cache_key)
+                if cached:
+                    logger.debug(f"Cache hit for loan {loan_id}")
+                    # We still need to fetch from DB for the ORM object
+                    # but we could skip if we stored full object
+            except Exception as e:
+                logger.warning(f"Cache error: {e}")
+
+        # Fetch from database
         loan = await self.loan_repo.get_by_id(loan_id)
         if not loan:
             raise LoanNotFoundError(str(loan_id))
 
-        # TODO: Add caching with Redis
+        # Cache the loan data
+        if use_cache:
+            try:
+                cache = await get_cache()
+                await cache.set(
+                    cache_key,
+                    {
+                        "id": str(loan.id),
+                        "country_code": loan.country_code,
+                        "status": loan.status.value,
+                        "amount_requested": str(loan.amount_requested),
+                        "risk_score": loan.risk_score,
+                    },
+                    ttl_seconds=CACHE_TTL_LOAN,
+                )
+            except Exception as e:
+                logger.warning(f"Cache set error: {e}")
 
         return loan
 
@@ -382,6 +421,20 @@ class LoanService:
                 priority=2,  # High priority for user notifications
             )
 
+        # Invalidate cache
+        try:
+            cache = await get_cache()
+            # Delete loan cache
+            await cache.delete(CacheKeys.loan(str(loan_id)))
+            # Delete stats cache
+            await cache.delete(CacheKeys.loan_stats(loan.country_code))
+            await cache.delete(CacheKeys.loan_stats(None))
+            # Delete list caches (pattern-based)
+            await cache.delete_pattern("loans:*")
+            logger.debug(f"Cache invalidated for loan {loan_id}")
+        except Exception as e:
+            logger.warning(f"Cache invalidation error: {e}")
+
         return updated
 
     async def get_status_history(
@@ -406,14 +459,40 @@ class LoanService:
     async def get_statistics(
         self,
         country_code: Optional[str] = None,
+        use_cache: bool = True,
     ) -> dict[str, Any]:
         """
         Get loan statistics.
 
         Args:
             country_code: Optional country filter
+            use_cache: Whether to use cache
 
         Returns:
             Dictionary with statistics
         """
-        return await self.loan_repo.get_statistics(country_code)
+        cache_key = CacheKeys.loan_stats(country_code)
+
+        # Try cache first
+        if use_cache:
+            try:
+                cache = await get_cache()
+                cached = await cache.get(cache_key)
+                if cached:
+                    logger.debug(f"Cache hit for stats {country_code or 'all'}")
+                    return cached
+            except Exception as e:
+                logger.warning(f"Cache error: {e}")
+
+        # Fetch from database
+        stats = await self.loan_repo.get_statistics(country_code)
+
+        # Cache the results
+        if use_cache:
+            try:
+                cache = await get_cache()
+                await cache.set(cache_key, stats, ttl_seconds=CACHE_TTL_STATS)
+            except Exception as e:
+                logger.warning(f"Cache set error: {e}")
+
+        return stats

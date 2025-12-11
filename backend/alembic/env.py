@@ -21,6 +21,7 @@ from app.models.job import AsyncJob  # noqa: E402
 from app.models.loan import LoanApplication  # noqa: E402
 from app.models.loan_status_history import LoanStatusHistory  # noqa: E402
 from app.models.user import User  # noqa: E402
+from app.models.webhook_event import WebhookEvent  # noqa: E402
 
 # Alembic Config object
 config = context.config
