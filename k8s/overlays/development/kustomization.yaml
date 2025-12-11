@@ -1,0 +1,78 @@
+# Development Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: loan-system-development
+
+# Base resources to include
+resources:
+  - ../../base
+
+# Namespace suffix for development
+namespace: loan-system-dev
+
+# Name prefix for resources
+namePrefix: dev-
+
+# Common labels
+commonLabels:
+  environment: development
+
+# Patches to customize for development
+patches:
+  # Reduce replicas for development
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: loan-api
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: loan-frontend
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: loan-workers
+  
+  # Adjust HPA for development
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+    target:
+      kind: HorizontalPodAutoscaler
+      name: loan-api-hpa
+
+# ConfigMap overrides for development
+configMapGenerator:
+  - name: loan-system-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Images (use local or dev registry)
+images:
+  - name: loan-api
+    newTag: dev
+  - name: loan-frontend
+    newTag: dev
+  - name: loan-workers
+    newTag: dev

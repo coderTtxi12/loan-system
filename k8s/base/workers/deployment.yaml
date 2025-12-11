@@ -1,0 +1,265 @@
+# Workers Deployment - Multiple worker types as separate containers
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loan-workers
+  namespace: loan-system
+  labels:
+    app.kubernetes.io/name: loan-workers
+    app.kubernetes.io/component: workers
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loan-workers
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: loan-workers
+        app.kubernetes.io/component: workers
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        # Risk Evaluation Worker
+        - name: worker-risk
+          image: loan-workers:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORKER_QUEUE
+              value: "risk_evaluation"
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: ENVIRONMENT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: LOG_LEVEL
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_PORT
+            - name: REDIS_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: JWT_SECRET_KEY
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: WEBHOOK_SECRET
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+        # Audit Worker
+        - name: worker-audit
+          image: loan-workers:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORKER_QUEUE
+              value: "audit"
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: ENVIRONMENT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: LOG_LEVEL
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_PORT
+            - name: REDIS_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: JWT_SECRET_KEY
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: WEBHOOK_SECRET
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+        # Webhook/Notifications Worker
+        - name: worker-webhook
+          image: loan-workers:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: WORKER_QUEUE
+              value: "notifications"
+            - name: ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: ENVIRONMENT
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: LOG_LEVEL
+            - name: DATABASE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_HOST
+            - name: DATABASE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_PORT
+            - name: DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: DATABASE_NAME
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: DATABASE_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)"
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: loan-system-config
+                  key: REDIS_PORT
+            - name: REDIS_URL
+              value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: JWT_SECRET_KEY
+            - name: WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: loan-system-secrets
+                  key: WEBHOOK_SECRET
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      restartPolicy: Always

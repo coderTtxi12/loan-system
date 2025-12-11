@@ -18,35 +18,20 @@ resources:
   - namespace.yaml
   - configmap.yaml
   - secrets.yaml
-  # Backend resources (to be added in Commit 36)
-  # - backend/deployment.yaml
-  # - backend/service.yaml
-  # - backend/hpa.yaml
-  # Frontend resources (to be added in Commit 37)
-  # - frontend/deployment.yaml
-  # - frontend/service.yaml
-  # Workers resources (to be added in Commit 37)
-  # - workers/deployment.yaml
-  # Ingress (to be added in Commit 38)
-  # - ingress.yaml
+  # Backend resources
+  - backend/
+  # Frontend resources
+  - frontend/
+  # Workers resources
+  - workers/
+  # Ingress
+  - ingress.yaml
 
 # Image configuration (can be overridden in overlays)
-# images:
-#   - name: loan-api
-#     newName: your-registry.com/loan-api
-#     newTag: latest
-#   - name: loan-frontend
-#     newName: your-registry.com/loan-frontend
-#     newTag: latest
-
-# Config transformers
-# configMapGenerator:
-#   - name: additional-config
-#     literals:
-#       - key=value
-
-# Secret generators (for dev/testing only)
-# secretGenerator:
-#   - name: test-secrets
-#     literals:
-#       - password=test
+images:
+  - name: loan-api
+    newTag: latest
+  - name: loan-frontend
+    newTag: latest
+  - name: loan-workers
+    newTag: latest

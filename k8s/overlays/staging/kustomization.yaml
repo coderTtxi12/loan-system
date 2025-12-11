@@ -1,0 +1,99 @@
+# Staging Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: loan-system-staging
+
+# Base resources to include
+resources:
+  - ../../base
+
+# Namespace for staging
+namespace: loan-system-staging
+
+# Name prefix for resources
+namePrefix: staging-
+
+# Common labels
+commonLabels:
+  environment: staging
+
+# Patches to customize for staging
+patches:
+  # Moderate replicas for staging
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: loan-api
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: loan-frontend
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+    target:
+      kind: Deployment
+      name: loan-workers
+  
+  # Adjust HPA for staging
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 5
+    target:
+      kind: HorizontalPodAutoscaler
+      name: loan-api-hpa
+  
+  # Moderate resources for staging
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "100m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "500m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "512Mi"
+    target:
+      kind: Deployment
+      name: loan-api
+
+# ConfigMap overrides for staging
+configMapGenerator:
+  - name: loan-system-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=staging
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=https://staging.loan.example.com
+
+# Images (use staging tags)
+images:
+  - name: loan-api
+    newName: your-registry.com/loan-api
+    newTag: staging
+  - name: loan-frontend
+    newName: your-registry.com/loan-frontend
+    newTag: staging
+  - name: loan-workers
+    newName: your-registry.com/loan-workers
+    newTag: staging

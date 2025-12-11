@@ -1,0 +1,129 @@
+# Production Environment Overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: loan-system-production
+
+# Base resources to include
+resources:
+  - ../../base
+
+# Namespace for production
+namespace: loan-system
+
+# Name prefix (none for production, cleaner names)
+# namePrefix: prod-
+
+# Common labels
+commonLabels:
+  environment: production
+
+# Patches to customize for production
+patches:
+  # Full replicas for production
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: loan-api
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+    target:
+      kind: Deployment
+      name: loan-frontend
+  
+  - patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 2
+    target:
+      kind: Deployment
+      name: loan-workers
+  
+  # Full HPA for production
+  - patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+    target:
+      kind: HorizontalPodAutoscaler
+      name: loan-api-hpa
+  
+  # Full resources for production
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "200m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "1000m"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: "1Gi"
+    target:
+      kind: Deployment
+      name: loan-api
+  
+  # Anti-affinity for high availability
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/affinity
+        value:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 100
+                podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                          - loan-api
+                  topologyKey: kubernetes.io/hostname
+    target:
+      kind: Deployment
+      name: loan-api
+
+# ConfigMap overrides for production
+configMapGenerator:
+  - name: loan-system-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=WARNING
+      - CORS_ORIGINS=https://loan.example.com
+      - RATE_LIMIT_PER_MINUTE=200
+
+# Images (use production registry and versioned tags)
+images:
+  - name: loan-api
+    newName: your-registry.com/loan-api
+    newTag: v1.0.0
+  - name: loan-frontend
+    newName: your-registry.com/loan-frontend
+    newTag: v1.0.0
+  - name: loan-workers
+    newName: your-registry.com/loan-workers
+    newTag: v1.0.0
+
+# Replicas configuration (can be overridden by patches above)
+replicas:
+  - name: loan-api
+    count: 3
+  - name: loan-frontend
+    count: 3
+  - name: loan-workers
+    count: 2
