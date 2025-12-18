@@ -2,18 +2,16 @@
  * Real-time connection indicator component.
  */
 import { useState, useEffect } from 'react';
-import { isSocketConnected, getLastConnectionTime } from '@/services/socket';
+import { isSocketConnected } from '@/services/socket';
 import clsx from 'clsx';
 
 const RealTimeIndicator = () => {
   const [connected, setConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
     // Check connection status periodically
     const checkConnection = () => {
       setConnected(isSocketConnected());
-      setLastUpdate(getLastConnectionTime());
     };
 
     checkConnection();
@@ -21,14 +19,6 @@ const RealTimeIndicator = () => {
 
     return () => clearInterval(interval);
   }, []);
-
-  const formatTime = (date: Date | null) => {
-    if (!date) return 'Never';
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   return (
     <div className="flex items-center gap-2 text-sm">
@@ -43,11 +33,6 @@ const RealTimeIndicator = () => {
           {connected ? 'Live' : 'Offline'}
         </span>
       </div>
-      {connected && lastUpdate && (
-        <span className="text-gray-400 text-xs">
-          Connected at {formatTime(lastUpdate)}
-        </span>
-      )}
     </div>
   );
 };

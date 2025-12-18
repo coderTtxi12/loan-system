@@ -23,6 +23,7 @@ const allowedTransitions: Record<LoanStatus, LoanStatus[]> = {
   REJECTED: [],
   DISBURSED: [],
   CANCELLED: [],
+  COMPLETED: [],
 };
 
 const statusLabels: Record<LoanStatus, string> = {
@@ -33,6 +34,7 @@ const statusLabels: Record<LoanStatus, string> = {
   REJECTED: 'Rejected',
   DISBURSED: 'Disbursed',
   CANCELLED: 'Cancelled',
+  COMPLETED: 'Completed',
 };
 
 const StatusChangeModal = ({

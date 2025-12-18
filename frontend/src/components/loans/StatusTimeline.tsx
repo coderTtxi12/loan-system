@@ -17,6 +17,7 @@ const statusColors: Record<LoanStatus, string> = {
   REJECTED: 'bg-red-500',
   DISBURSED: 'bg-emerald-500',
   CANCELLED: 'bg-gray-500',
+   COMPLETED: 'bg-emerald-700',
 };
 
 const StatusTimeline = ({ history, loading = false }: StatusTimelineProps) => {

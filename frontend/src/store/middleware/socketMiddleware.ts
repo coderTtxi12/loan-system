@@ -9,10 +9,11 @@ import {
   disconnectSocket, 
   getSocket 
 } from '@/services/socket';
-import { 
-  loanUpdated, 
-  loanCreated, 
-  statusChanged 
+import {
+  loanUpdated,
+  loanCreated,
+  statusChanged,
+  fetchStatistics,
 } from '@/store/slices/loansSlice';
 import { addNotification } from '@/store/slices/uiSlice';
 
@@ -32,6 +33,8 @@ const setupSocketListeners = (dispatch: any): void => {
   socket.on('loan_created', (data: any) => {
     console.log('[Socket.IO] Loan created:', data);
     dispatch(loanCreated(data.data));
+    // Refresh statistics so dashboard counts/percentages stay in sync
+    dispatch(fetchStatistics(undefined));
     dispatch(
       addNotification({
         type: 'info',
@@ -45,6 +48,8 @@ const setupSocketListeners = (dispatch: any): void => {
   socket.on('loan_updated', (data: any) => {
     console.log('[Socket.IO] Loan updated:', data);
     dispatch(loanUpdated({ id: data.loan_id, ...data.changes }));
+    // Loan updates can affect statistics (status, risk score, etc.)
+    dispatch(fetchStatistics(undefined));
   });
 
   // Status changed event
@@ -63,6 +68,8 @@ const setupSocketListeners = (dispatch: any): void => {
         duration: 5000,
       })
     );
+    // Status changes directly affect by_status / by_country / totals
+    dispatch(fetchStatistics(undefined));
   });
 
   listenersInitialized = true;

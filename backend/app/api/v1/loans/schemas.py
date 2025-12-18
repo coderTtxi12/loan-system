@@ -183,8 +183,19 @@ class LoanStatusHistoryResponse(BaseModel):
 class LoanStatisticsResponse(BaseModel):
     """Response schema for loan statistics."""
 
+    # Total number of loans (all statuses)
     total_count: int
+    # Explicit alias used by the frontend dashboard
+    total_loans: int
+
+    # Breakdown by status and country
     by_status: dict[str, int]
+    by_country: dict[str, int]
+
+    # Monetary statistics
     total_amount_requested: float
     average_amount: float
+
+    # Risk / review statistics
+    average_risk_score: Optional[float] = None
     pending_review_count: int

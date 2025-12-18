@@ -114,6 +114,7 @@ const Login = () => {
             <div className="text-sm text-gray-600 space-y-1">
               <p><span className="font-medium">Admin:</span> admin@loan.com / admin123</p>
               <p><span className="font-medium">Analyst:</span> analyst@loan.com / analyst123</p>
+              <p><span className="font-medium">Viewer:</span> viewer@loan.com / viewer123</p>
             </div>
           </div>
         </div>

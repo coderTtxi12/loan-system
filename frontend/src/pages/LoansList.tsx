@@ -11,6 +11,9 @@ import { LoanTable, LoanFilters, RealTimeIndicator } from '@/components/loans';
 const LoansList = () => {
   const dispatch = useAppDispatch();
   const { items, loading, pagination, filters } = useAppSelector((state) => state.loans);
+  const { user } = useAppSelector((state) => state.auth);
+  
+  const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
   useEffect(() => {
     dispatch(fetchLoans(undefined));
@@ -35,12 +38,14 @@ const LoansList = () => {
         </div>
         <div className="flex items-center gap-4">
           <RealTimeIndicator />
-          <Link
-            to="/loans/new"
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            + New Loan
-          </Link>
+          {canCreateLoan && (
+            <Link
+              to="/loans/new"
+              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            >
+              + New Loan
+            </Link>
+          )}
         </div>
       </div>
 

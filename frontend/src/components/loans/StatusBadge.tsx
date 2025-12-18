@@ -38,6 +38,10 @@ const statusConfig: Record<LoanStatus, { label: string; className: string }> = {
     label: 'Cancelled',
     className: 'bg-gray-100 text-gray-800 border-gray-200',
   },
+  COMPLETED: {
+    label: 'Completed',
+    className: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  },
 };
 
 const sizeStyles = {

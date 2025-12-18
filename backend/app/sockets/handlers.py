@@ -29,18 +29,40 @@ class LoanNamespace(socketio.AsyncNamespace):
         super().__init__(namespace)
         self.connected_clients: dict[str, dict[str, Any]] = {}
 
-    async def on_connect(self, sid: str, environ: dict) -> bool:
+    async def on_connect(
+        self,
+        sid: str,
+        environ: dict,
+        *args: Any,
+        **kwargs: Any,
+    ) -> bool:
         """
         Handle client connection.
 
         Args:
             sid: Session ID
             environ: WSGI environment
+            *args: Additional positional arguments (for Socket.IO compatibility)
+            **kwargs: Additional keyword arguments (for Socket.IO compatibility)
 
         Returns:
             True to accept connection
         """
         logger.info(f"Client connected: {sid}")
+
+        # Extract auth data if provided by newer Socket.IO versions
+        auth: Optional[dict] = None
+        if args:
+            # Some versions pass auth as the third positional argument
+            possible_auth = args[0]
+            if isinstance(possible_auth, dict):
+                auth = possible_auth
+        if not auth and "auth" in kwargs and isinstance(kwargs["auth"], dict):
+            auth = kwargs["auth"]
+
+        if auth:
+            logger.debug(f"Client {sid} auth payload: {auth}")
+
         self.connected_clients[sid] = {
             "rooms": set(),
             "connected_at": environ.get("REQUEST_METHOD"),

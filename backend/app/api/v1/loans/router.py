@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AnalystUser, CurrentUser, DbSession
 from app.api.v1.loans.schemas import (
     LoanCreateRequest,
     LoanDetailResponse,
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/loans", tags=["Loans"])
 )
 async def create_loan(
     db: DbSession,
-    current_user: CurrentUser,
+    current_user: AnalystUser,
     request: LoanCreateRequest,
 ) -> LoanResponse:
     """

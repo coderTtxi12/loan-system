@@ -9,7 +9,8 @@ export type LoanStatus =
   | 'APPROVED'
   | 'REJECTED'
   | 'DISBURSED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'COMPLETED';
 
 export type CountryCode = 'ES' | 'MX' | 'CO' | 'BR';
 
@@ -84,9 +85,11 @@ export interface LoanPagination {
 
 export interface LoanStatistics {
   total_loans: number;
+  total_count?: number; // backward compatibility with older API shape
   by_status: Record<LoanStatus, number>;
   by_country: Record<CountryCode, number>;
   total_amount_requested: number;
+  average_amount?: number; // currently not used in UI
   average_risk_score: number | null;
   pending_review_count: number;
 }

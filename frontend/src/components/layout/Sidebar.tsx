@@ -75,6 +75,9 @@ const Sidebar = () => {
   const dispatch = useAppDispatch();
   const { sidebarOpen } = useAppSelector((state) => state.ui);
   const { filters } = useAppSelector((state) => state.loans);
+  const { user } = useAppSelector((state) => state.auth);
+  
+  const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
   const handleCountryFilter = (code: string) => {
     dispatch(setFilters({ 
@@ -97,23 +100,25 @@ const Sidebar = () => {
       <div className="p-4">
         {/* Main navigation */}
         <nav className="space-y-1">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                )
-              }
-            >
-              {item.icon}
-              {item.name}
-            </NavLink>
-          ))}
+          {navigation
+            .filter((item) => item.path !== '/loans/new' || canCreateLoan)
+            .map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  clsx(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  )
+                }
+              >
+                {item.icon}
+                {item.name}
+              </NavLink>
+            ))}
         </nav>
 
         {/* Divider */}

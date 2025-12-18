@@ -343,10 +343,6 @@ class LoanRepository(BaseRepository[LoanApplication]):
         Returns:
             Dictionary with statistics
         """
-        base_query = select(LoanApplication)
-        if country_code:
-            base_query = base_query.where(LoanApplication.country_code == country_code)
-
         # Count by status
         status_counts = {}
         for status in LoanStatus:
@@ -367,11 +363,43 @@ class LoanRepository(BaseRepository[LoanApplication]):
         avg_result = await self.session.execute(avg_query)
         avg_amount = avg_result.scalar_one() or Decimal("0")
 
+        # Count by country
+        by_country: dict[str, int] = {}
+        country_query = select(
+            LoanApplication.country_code,
+            func.count().label("count"),
+        )
+        if country_code:
+            country_query = country_query.where(
+                LoanApplication.country_code == country_code
+            )
+        country_query = country_query.group_by(LoanApplication.country_code)
+        country_result = await self.session.execute(country_query)
+        for code, count in country_result.all():
+            # Ensure string keys for JSON serialization
+            by_country[str(code)] = int(count)
+
+        # Average risk score (ignoring NULLs)
+        avg_risk_query = select(func.avg(LoanApplication.risk_score))
+        if country_code:
+            avg_risk_query = avg_risk_query.where(
+                LoanApplication.country_code == country_code
+            )
+        avg_risk_result = await self.session.execute(avg_risk_query)
+        avg_risk = avg_risk_result.scalar_one()
+
+        total_loans = sum(status_counts.values())
+
         return {
-            "total_count": sum(status_counts.values()),
+            # Kept for backwards compatibility
+            "total_count": total_loans,
+            # New explicit field used by frontend
+            "total_loans": total_loans,
             "by_status": status_counts,
+            "by_country": by_country,
             "total_amount_requested": float(total_amount),
             "average_amount": float(avg_amount),
+            "average_risk_score": float(avg_risk) if avg_risk is not None else None,
             "pending_review_count": await self.get_count(
                 country_code=country_code,
                 requires_review=True,

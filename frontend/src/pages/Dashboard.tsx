@@ -17,17 +17,24 @@ const countries: Record<CountryCode, { name: string; flag: string }> = {
   BR: { name: 'Brasil', flag: '🇧🇷' },
 };
 
-// Status info
+// Status info - include all possible statuses
 const statuses: { status: LoanStatus; label: string; color: string }[] = [
   { status: 'PENDING', label: 'Pending', color: 'bg-yellow-500' },
+  { status: 'VALIDATING', label: 'Validating', color: 'bg-blue-400' },
   { status: 'IN_REVIEW', label: 'In Review', color: 'bg-purple-500' },
   { status: 'APPROVED', label: 'Approved', color: 'bg-green-500' },
   { status: 'REJECTED', label: 'Rejected', color: 'bg-red-500' },
+  { status: 'CANCELLED', label: 'Cancelled', color: 'bg-gray-400' },
+  { status: 'DISBURSED', label: 'Disbursed', color: 'bg-teal-500' },
+  { status: 'COMPLETED', label: 'Completed', color: 'bg-emerald-600' },
 ];
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
   const { items, statistics, loading } = useAppSelector((state) => state.loans);
+  const { user } = useAppSelector((state) => state.auth);
+  
+  const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
   useEffect(() => {
     dispatch(fetchStatistics(undefined));
@@ -51,52 +58,30 @@ const Dashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600">Overview of loan applications</p>
         </div>
-        <Link
-          to="/loans/new"
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          + New Loan
-        </Link>
+        {canCreateLoan && (
+          <Link
+            to="/loans/new"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            + New Loan
+          </Link>
+        )}
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
         {/* Total Loans */}
         <Card className="bg-gradient-to-br from-primary-500 to-primary-600 text-white border-0">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-primary-100 text-sm">Total Loans</p>
               <p className="text-3xl font-bold mt-1">
-                {statistics?.total_loans ?? 0}
+                {statistics
+                  ? statistics.total_loans ?? statistics.total_count ?? 0
+                  : 0}
               </p>
             </div>
             <div className="text-4xl opacity-80">📊</div>
-          </div>
-        </Card>
-
-        {/* Total Amount */}
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm">Total Requested</p>
-              <p className="text-3xl font-bold mt-1">
-                {formatCurrency(statistics?.total_amount_requested ?? 0)}
-              </p>
-            </div>
-            <div className="text-4xl opacity-80">💰</div>
-          </div>
-        </Card>
-
-        {/* Pending Review */}
-        <Card className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-yellow-100 text-sm">Pending Review</p>
-              <p className="text-3xl font-bold mt-1">
-                {statistics?.pending_review_count ?? 0}
-              </p>
-            </div>
-            <div className="text-4xl opacity-80">⏳</div>
           </div>
         </Card>
 
@@ -106,7 +91,9 @@ const Dashboard = () => {
             <div>
               <p className="text-purple-100 text-sm">Avg Risk Score</p>
               <p className="text-3xl font-bold mt-1">
-                {statistics?.average_risk_score?.toFixed(0) ?? 'N/A'}
+                {statistics?.average_risk_score != null
+                  ? statistics.average_risk_score.toFixed(0)
+                  : 'N/A'}
               </p>
             </div>
             <div className="text-4xl opacity-80">📈</div>
@@ -121,8 +108,10 @@ const Dashboard = () => {
           <div className="space-y-3">
             {statuses.map(({ status, label, color }) => {
               const count = statistics?.by_status?.[status] ?? 0;
-              const percentage = statistics?.total_loans
-                ? Math.round((count / statistics.total_loans) * 100)
+              const total =
+                statistics?.total_loans ?? statistics?.total_count ?? 0;
+              const percentage = total
+                ? Math.round((count / total) * 100)
                 : 0;
               return (
                 <div key={status} className="flex items-center gap-3">
@@ -149,8 +138,10 @@ const Dashboard = () => {
           <div className="space-y-3">
             {Object.entries(countries).map(([code, { name, flag }]) => {
               const count = statistics?.by_country?.[code as CountryCode] ?? 0;
-              const percentage = statistics?.total_loans
-                ? Math.round((count / statistics.total_loans) * 100)
+              const total =
+                statistics?.total_loans ?? statistics?.total_count ?? 0;
+              const percentage = total
+                ? Math.round((count / total) * 100)
                 : 0;
               return (
                 <div key={code} className="flex items-center gap-3">

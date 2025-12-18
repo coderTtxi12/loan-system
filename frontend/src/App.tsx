@@ -31,6 +31,23 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Route wrapper that requires analyst or admin role
+const AnalystRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
+  
+  if (!canCreateLoan) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -50,7 +67,14 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="loans" element={<LoansList />} />
-          <Route path="loans/new" element={<CreateLoan />} />
+          <Route
+            path="loans/new"
+            element={
+              <AnalystRoute>
+                <CreateLoan />
+              </AnalystRoute>
+            }
+          />
           <Route path="loans/:id" element={<LoanDetail />} />
         </Route>
         
