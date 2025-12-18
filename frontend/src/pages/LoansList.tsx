@@ -16,8 +16,9 @@ const LoansList = () => {
   const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
   useEffect(() => {
+    // Fetch loans with current filters when component mounts or filters change
     dispatch(fetchLoans(undefined));
-  }, [dispatch]);
+  }, [dispatch, filters.country_code, filters.status, filters.requires_review, filters.page]);
 
   const handlePageChange = (newPage: number) => {
     dispatch(setFilters({ page: newPage }));

@@ -303,7 +303,7 @@ class LoanRepository(BaseRepository[LoanApplication]):
         query = (
             select(LoanStatusHistory)
             .where(LoanStatusHistory.loan_id == loan_id)
-            .order_by(LoanStatusHistory.created_at.desc())
+            .order_by(LoanStatusHistory.created_at.asc())
         )
         result = await self.session.execute(query)
         return result.scalars().all()

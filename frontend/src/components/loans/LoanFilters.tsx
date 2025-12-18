@@ -39,12 +39,6 @@ const LoanFilters = () => {
     dispatch(fetchLoans({ status, page: 1 }));
   };
 
-  const handleReviewChange = (value: string) => {
-    const requiresReview = value === '' ? null : value === 'true';
-    dispatch(setFilters({ requires_review: requiresReview, page: 1 }));
-    dispatch(fetchLoans({ requires_review: requiresReview, page: 1 }));
-  };
-
   const handleClearFilters = () => {
     dispatch(clearFilters());
     dispatch(fetchLoans({ page: 1 }));
@@ -97,7 +91,7 @@ const LoanFilters = () => {
         </div>
 
         {/* Review filter */}
-        <div className="flex-1 min-w-[150px]">
+        {/* <div className="flex-1 min-w-[150px]">
           <label className="block text-xs font-medium text-gray-500 uppercase mb-1">
             Review Status
           </label>
@@ -110,7 +104,7 @@ const LoanFilters = () => {
             <option value="true">Requires Review</option>
             <option value="false">No Review Needed</option>
           </select>
-        </div>
+        </div> */}
 
         {/* Clear filters button */}
         {hasActiveFilters && (

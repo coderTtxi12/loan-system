@@ -4,7 +4,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchLoans, fetchStatistics } from '@/store/slices/loansSlice';
+import { fetchLoans, fetchStatistics, setFilters } from '@/store/slices/loansSlice';
 import { Card } from '@/components/ui';
 import { StatusBadge } from '@/components/loans';
 import type { LoanStatus, CountryCode } from '@/types/loan';
@@ -37,6 +37,15 @@ const Dashboard = () => {
   const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
   useEffect(() => {
+    // Clear all filters when visiting dashboard
+    dispatch(setFilters({ 
+      country_code: null, 
+      status: null, 
+      requires_review: null, 
+      page: 1 
+    }));
+    
+    // Fetch statistics and recent loans
     dispatch(fetchStatistics(undefined));
     dispatch(fetchLoans({ page: 1, page_size: 5 }));
   }, [dispatch]);

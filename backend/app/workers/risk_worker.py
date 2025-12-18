@@ -90,13 +90,13 @@ class RiskEvaluationWorker(BaseWorker):
 
             if risk_score <= RISK_THRESHOLD_APPROVE:
                 new_status = LoanStatus.APPROVED
-                decision_reason = f"Auto-approved: risk_score {risk_score} <= {RISK_THRESHOLD_APPROVE}"
+                decision_reason = f"Risk evaluation finished. Auto-approved: risk_score {risk_score} <= {RISK_THRESHOLD_APPROVE}"
             elif risk_score >= RISK_THRESHOLD_REJECT:
                 new_status = LoanStatus.REJECTED
-                decision_reason = f"Auto-rejected: risk_score {risk_score} >= {RISK_THRESHOLD_REJECT}"
+                decision_reason = f"Risk evaluation finished. Auto-rejected: risk_score {risk_score} >= {RISK_THRESHOLD_REJECT}"
             else:
                 new_status = LoanStatus.IN_REVIEW
-                decision_reason = f"Manual review required: risk_score {risk_score} between thresholds"
+                decision_reason = f"Risk evaluation finished. Manual review required: risk_score {risk_score} between thresholds"
 
             # First transition to VALIDATING, then to final status
             await loan_repo.update_status(

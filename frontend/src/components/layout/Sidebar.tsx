@@ -1,10 +1,11 @@
 /**
  * Sidebar navigation component.
  */
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { setFilters } from '@/store/slices/loansSlice';
+import { setFilters, fetchLoans } from '@/store/slices/loansSlice';
 import clsx from 'clsx';
+import type { LoanStatus, CountryCode } from '@/types/loan';
 
 interface NavItem {
   name: string;
@@ -64,31 +65,50 @@ const countries = [
   { code: 'BR', name: 'Brasil', flag: '🇧🇷' },
 ];
 
-const statuses = [
-  { value: 'PENDING', label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'IN_REVIEW', label: 'In Review', color: 'bg-blue-100 text-blue-800' },
-  { value: 'APPROVED', label: 'Approved', color: 'bg-green-100 text-green-800' },
-  { value: 'REJECTED', label: 'Rejected', color: 'bg-red-100 text-red-800' },
+const statuses: { value: LoanStatus; label: string; color: string; dotColor: string }[] = [
+  { value: 'PENDING', label: 'Pending', color: 'bg-yellow-100 text-yellow-800', dotColor: 'bg-yellow-500' },
+  { value: 'VALIDATING', label: 'Validating', color: 'bg-blue-100 text-blue-800', dotColor: 'bg-blue-400' },
+  { value: 'IN_REVIEW', label: 'In Review', color: 'bg-purple-100 text-purple-800', dotColor: 'bg-purple-500' },
+  { value: 'APPROVED', label: 'Approved', color: 'bg-green-100 text-green-800', dotColor: 'bg-green-500' },
+  { value: 'REJECTED', label: 'Rejected', color: 'bg-red-100 text-red-800', dotColor: 'bg-red-500' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-gray-100 text-gray-800', dotColor: 'bg-gray-400' },
+  { value: 'DISBURSED', label: 'Disbursed', color: 'bg-teal-100 text-teal-800', dotColor: 'bg-teal-500' },
+  { value: 'COMPLETED', label: 'Completed', color: 'bg-emerald-100 text-emerald-800', dotColor: 'bg-emerald-600' },
 ];
 
 const Sidebar = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { sidebarOpen } = useAppSelector((state) => state.ui);
   const { filters } = useAppSelector((state) => state.loans);
   const { user } = useAppSelector((state) => state.auth);
   
   const canCreateLoan = user?.role === 'ADMIN' || user?.role === 'ANALYST';
 
-  const handleCountryFilter = (code: string) => {
+  const handleCountryFilter = (code: CountryCode) => {
+    const newCountryCode = filters.country_code === code ? null : code;
     dispatch(setFilters({ 
-      country_code: filters.country_code === code ? null : code as any,
+      country_code: newCountryCode,
+      page: 1 
+    }));
+    // Navigate to loans page and fetch with filter
+    navigate('/loans');
+    dispatch(fetchLoans({ 
+      country_code: newCountryCode || undefined,
       page: 1 
     }));
   };
 
-  const handleStatusFilter = (status: string) => {
+  const handleStatusFilter = (status: LoanStatus) => {
+    const newStatus = filters.status === status ? null : status;
     dispatch(setFilters({ 
-      status: filters.status === status ? null : status as any,
+      status: newStatus,
+      page: 1 
+    }));
+    // Navigate to loans page and fetch with filter
+    navigate('/loans');
+    dispatch(fetchLoans({ 
+      status: newStatus || undefined,
       page: 1 
     }));
   };
@@ -133,7 +153,7 @@ const Sidebar = () => {
             {countries.map((country) => (
               <button
                 key={country.code}
-                onClick={() => handleCountryFilter(country.code)}
+                onClick={() => handleCountryFilter(country.code as CountryCode)}
                 className={clsx(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   filters.country_code === country.code
@@ -166,13 +186,7 @@ const Sidebar = () => {
                 )}
               >
                 <span
-                  className={clsx(
-                    'w-2 h-2 rounded-full',
-                    status.value === 'PENDING' && 'bg-yellow-500',
-                    status.value === 'IN_REVIEW' && 'bg-blue-500',
-                    status.value === 'APPROVED' && 'bg-green-500',
-                    status.value === 'REJECTED' && 'bg-red-500'
-                  )}
+                  className={clsx('w-2 h-2 rounded-full', status.dotColor)}
                 />
                 {status.label}
               </button>

@@ -71,6 +71,7 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
     control,
     watch,
     reset,
+    setValue,
     formState: { errors },
     trigger,
   } = useForm<LoanFormData>({
@@ -89,10 +90,25 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
   const docType = getDocumentType(selectedCountry);
   const docPlaceholder = getDocumentPlaceholder(selectedCountry);
 
-  // Re-validate document when country changes
+  // Valid document examples for testing
+  const documentExamples: Record<CountryCode, string> = {
+    ES: '12345678Z', // DNI válido (checksum: 12345678 % 23 = 0 -> Z)
+    MX: 'KYBB010115HDFDFCX0', // CURP válido (fecha válida: 01/01/15, estado DF válido)
+    CO: '1234567890', // CC válido (6-10 dígitos, no empieza con 0)
+    BR: '12345678901', // CPF formato válido (11 dígitos, backend validará checksum)
+  };
+
+  const handleUseExample = () => {
+    const example = documentExamples[selectedCountry];
+    setValue('document_number', example);
+    trigger('document_number'); // Re-validate after setting
+  };
+
+  // Clear document number when country changes
   useEffect(() => {
+    setValue('document_number', '');
     trigger('document_number');
-  }, [selectedCountry, trigger]);
+  }, [selectedCountry, setValue, trigger]);
 
   const handleFormSubmit = async (data: LoanFormData) => {
     // Add document_type based on selected country
@@ -157,13 +173,30 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
           />
 
           <div className="md:col-span-2">
-            <Input
-              label={`Document Number (${docType})`}
-              placeholder={docPlaceholder}
-              error={errors.document_number?.message}
-              helperText={`Enter a valid ${docType} for ${selectedCountry}`}
-              {...register('document_number')}
-            />
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Document Number ({docType})
+                </label>
+                <button
+                  type="button"
+                  onClick={handleUseExample}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  Use example
+                </button>
+              </div>
+              <Input
+                placeholder={docPlaceholder}
+                error={errors.document_number?.message}
+                helperText={
+                  errors.document_number
+                    ? undefined
+                    : `Example: ${documentExamples[selectedCountry]}`
+                }
+                {...register('document_number')}
+              />
+            </div>
           </div>
         </div>
       </Card>

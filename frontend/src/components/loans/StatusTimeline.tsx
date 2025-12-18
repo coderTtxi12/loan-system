@@ -47,10 +47,15 @@ const StatusTimeline = ({ history, loading = false }: StatusTimelineProps) => {
     );
   }
 
+  // Sort history by created_at ascending (oldest first) to show as timeline
+  const sortedHistory = [...history].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
   return (
     <div className="flow-root">
       <ul className="-mb-8">
-        {history.map((event, index) => (
+        {sortedHistory.map((event, index) => (
           <li key={event.id}>
             <div className="relative pb-8">
               {/* Connecting line */}
