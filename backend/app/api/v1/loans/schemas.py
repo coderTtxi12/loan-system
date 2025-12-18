@@ -90,6 +90,33 @@ class LoanResponse(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @classmethod
+    def from_orm_with_decryption(cls, obj):
+        """
+        Create response from ORM object with decrypted PII.
+        
+        Args:
+            obj: LoanApplication ORM object
+            
+        Returns:
+            LoanResponse with decrypted full_name
+        """
+        return cls(
+            id=obj.id,
+            country_code=obj.country_code,
+            document_type=obj.document_type,
+            full_name=obj.decrypted_full_name,  # Use decrypted property
+            amount_requested=obj.amount_requested,
+            monthly_income=obj.monthly_income,
+            currency=obj.currency,
+            status=obj.status,
+            risk_score=obj.risk_score,
+            requires_review=obj.requires_review,
+            created_at=obj.created_at,
+            updated_at=obj.updated_at,
+            processed_at=obj.processed_at,
+        )
+
 
 class LoanDetailResponse(LoanResponse):
     """Detailed response including banking info and metadata."""
@@ -115,10 +142,10 @@ class LoanListResponse(BaseModel):
         page: int,
         page_size: int,
     ) -> "LoanListResponse":
-        """Create response from query results."""
+        """Create response from query results with decrypted PII."""
         pages = (total + page_size - 1) // page_size if page_size > 0 else 0
         return cls(
-            items=[LoanResponse.model_validate(item) for item in items],
+            items=[LoanResponse.from_orm_with_decryption(item) for item in items],
             total=total,
             page=page,
             page_size=page_size,

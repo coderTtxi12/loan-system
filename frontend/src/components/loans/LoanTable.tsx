@@ -116,7 +116,6 @@ const LoanTable = ({ loans, loading = false }: LoanTableProps) => {
               <td className="py-3 px-4">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{loan.full_name}</p>
-                  <p className="text-xs text-gray-500">{loan.email}</p>
                 </div>
               </td>
               <td className="py-3 px-4">

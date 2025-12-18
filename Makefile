@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint migrate docker-build deploy-dev deploy-staging deploy-prod venv
+.PHONY: help install dev test lint migrate seed docker-build deploy-dev deploy-staging deploy-prod venv
 
 # Colors
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -29,6 +29,7 @@ help:
 	@echo '  ${YELLOW}test${RESET}           Run all tests'
 	@echo '  ${YELLOW}lint${RESET}           Run linters'
 	@echo '  ${YELLOW}migrate${RESET}        Run database migrations'
+	@echo '  ${YELLOW}seed${RESET}           Seed database with demo users'
 	@echo '  ${YELLOW}docker-build${RESET}   Build Docker images'
 	@echo '  ${YELLOW}deploy-dev${RESET}     Deploy to development'
 	@echo '  ${YELLOW}deploy-staging${RESET} Deploy to staging'
@@ -63,14 +64,14 @@ dev: venv
 	@echo "${GREEN}Ensuring services are running (postgres, redis)...${RESET}"
 	@docker compose up -d postgres redis 2>/dev/null || true
 	@echo "${GREEN}Starting backend...${RESET}"
-	$(VENV_BIN)/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend &
+	$(VENV_BIN)/uvicorn app.main:socket_app --reload --host 0.0.0.0 --port 8000 --app-dir backend &
 	@echo "${GREEN}Starting frontend...${RESET}"
 	cd frontend && npm run dev
 
 ## Start only backend
 dev-backend: venv
 	@echo "${GREEN}Starting backend...${RESET}"
-	$(VENV_BIN)/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend
+	$(VENV_BIN)/uvicorn app.main:socket_app --reload --host 0.0.0.0 --port 8000 --app-dir backend
 
 ## Start only frontend
 dev-frontend:
@@ -111,6 +112,11 @@ migrate: venv
 migrate-create: venv
 	@echo "${GREEN}Creating migration: $(msg)${RESET}"
 	cd backend && ../$(VENV_BIN)/alembic revision --autogenerate -m "$(msg)"
+
+## Seed database with demo data
+seed: venv
+	@echo "${GREEN}Seeding database...${RESET}"
+	cd backend && ../$(VENV_BIN)/python -m app.db.seed
 
 ## Build Docker images
 docker-build:

@@ -1,16 +1,30 @@
-version: '3.8'
+# Docker Compose configuration for Loan System
+# Uses Docker Compose extensions (x-*) to avoid duplication
+
+x-common-variables: &common-variables
+  DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
+  REDIS_URL: redis://redis:6379/0
+  JWT_SECRET: ${JWT_SECRET:-your-super-secret-key-change-in-production}
+  WEBHOOK_SECRET: ${WEBHOOK_SECRET:-webhook-secret-key-change-in-production}
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-backend-variables: &backend-variables
+  <<: *common-variables
+  DEBUG: ${DEBUG:-true}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
 
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: loan-postgres
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: loans_db
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-loans_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +37,7 @@ services:
 
   # Redis Cache
   redis:
-    image: redis:7-alpine
+    image: redis:7
     container_name: loan-redis
     ports:
       - "6379:6379"
@@ -44,10 +58,11 @@ services:
     ports:
       - "5050:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - loan-network
     profiles:
@@ -62,13 +77,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
-      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
-      - ENVIRONMENT=development
-      - DEBUG=true
-      - LOG_LEVEL=INFO
+      <<: *backend-variables
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +97,8 @@ services:
     container_name: loan-frontend
     ports:
       - "3000:80"
+    env_file:
+      - ./frontend/.env
     depends_on:
       - backend
     networks:
@@ -99,13 +112,10 @@ services:
       dockerfile: Dockerfile.workers
     container_name: loan-worker-risk
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
-      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
-      - ENVIRONMENT=development
-      - LOG_LEVEL=INFO
-      - WORKER_QUEUE=risk_evaluation
+      <<: *common-variables
+      WORKER_QUEUE: risk_evaluation
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,13 +132,10 @@ services:
       dockerfile: Dockerfile.workers
     container_name: loan-worker-audit
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
-      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
-      - ENVIRONMENT=development
-      - LOG_LEVEL=INFO
-      - WORKER_QUEUE=audit
+      <<: *common-variables
+      WORKER_QUEUE: audit
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -145,13 +152,10 @@ services:
       dockerfile: Dockerfile.workers
     container_name: loan-worker-webhook
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/loans_db
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
-      - WEBHOOK_SECRET=webhook-secret-key-change-in-production
-      - ENVIRONMENT=development
-      - LOG_LEVEL=INFO
-      - WORKER_QUEUE=notifications
+      <<: *common-variables
+      WORKER_QUEUE: notifications
+    env_file:
+      - ./backend/.env
     depends_on:
       postgres:
         condition: service_healthy

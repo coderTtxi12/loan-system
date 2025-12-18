@@ -79,8 +79,38 @@ export const createLoan = createAsyncThunk(
       const response = await api.post('/loans', loanData);
       return response.data as Loan;
     } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to create loan';
-      return rejectWithValue(message);
+      // Log full error for debugging
+      console.error('Create loan error:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        request: loanData,
+      });
+      
+      // Extract detailed error message and errors array
+      const errorData = error.response?.data;
+      let message = 'Failed to create loan';
+      let errors: string[] = [];
+      
+      if (errorData?.detail) {
+        // FastAPI validation errors
+        if (Array.isArray(errorData.detail)) {
+          errors = errorData.detail.map((err: any) => 
+            `${err.loc?.join('.')}: ${err.msg}`
+          );
+          message = `Validation error: ${errors.join(', ')}`;
+        } else if (typeof errorData.detail === 'object') {
+          // Custom API exception format: { message, errors }
+          message = errorData.detail.message || message;
+          errors = errorData.detail.errors || [];
+        } else if (typeof errorData.detail === 'string') {
+          message = errorData.detail;
+        }
+      } else if (errorData?.message) {
+        message = errorData.message;
+      }
+      
+      // Return object with both message and errors
+      return rejectWithValue({ message, errors });
     }
   }
 );
@@ -223,7 +253,11 @@ const loansSlice = createSlice({
       })
       .addCase(createLoan.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        // Handle both string (legacy) and object (new format) error payloads
+        const payload = action.payload as any;
+        state.error = typeof payload === 'string' 
+          ? payload 
+          : payload?.message || 'Failed to create loan';
       });
 
     // Update status

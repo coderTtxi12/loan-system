@@ -120,7 +120,7 @@ const Login = () => {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-6">
-          © 2024 Loan System. All rights reserved.
+          © 2025 Loan System. All rights reserved.
         </p>
       </div>
     </div>

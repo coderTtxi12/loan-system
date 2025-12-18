@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import BigInteger, DateTime, Index, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ENUM, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -50,7 +50,7 @@ class AsyncJob(Base):
 
     # Status tracking
     status: Mapped[JobStatus] = mapped_column(
-        String(20),
+        ENUM(JobStatus, name='job_status', create_type=False),
         nullable=False,
         default=JobStatus.PENDING,
         index=True,

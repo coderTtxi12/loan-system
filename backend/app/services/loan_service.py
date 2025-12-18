@@ -1,5 +1,4 @@
 """Loan application service with business logic."""
-import hashlib
 import logging
 from decimal import Decimal
 from typing import Any, Optional, Sequence
@@ -13,6 +12,7 @@ from app.core.exceptions import (
     LoanNotFoundError,
     ValidationError,
 )
+from app.core.pii_encryption import encrypt_pii, hash_document
 from app.models.loan import LoanApplication, LoanStatus
 from app.repositories.job_repository import JobRepository
 from app.repositories.loan_repository import LoanRepository
@@ -68,8 +68,7 @@ class LoanService:
         Returns:
             SHA256 hash string
         """
-        combined = f"{country_code}:{document_number}".upper()
-        return hashlib.sha256(combined.encode()).hexdigest()
+        return hash_document(document_number, country_code)
 
     async def create_loan_application(
         self,
@@ -171,6 +170,9 @@ class LoanService:
         )
 
         # 6. Create loan application
+        # Encrypt PII before storing
+        encrypted_document = encrypt_pii(document_number)
+        encrypted_full_name = encrypt_pii(full_name)
         document_hash = self.hash_document(document_number, country_code)
 
         # Check for existing application with same document
@@ -191,9 +193,9 @@ class LoanService:
         loan = await self.loan_repo.create(
             country_code=country_code,
             document_type=document_type,
-            document_number=document_number,  # TODO: Encrypt PII
+            document_number=encrypted_document,  # Encrypted PII
             document_hash=document_hash,
-            full_name=full_name,  # TODO: Encrypt PII
+            full_name=encrypted_full_name,  # Encrypted PII
             amount_requested=amount_requested,
             monthly_income=monthly_income,
             currency=strategy.currency,
@@ -224,19 +226,8 @@ class LoanService:
             priority=1 if combined_result.requires_review else 0,
         )
 
-        # Enqueue audit job
-        await self.job_repo.enqueue(
-            queue_name="audit",
-            payload={
-                "entity_type": "loan_application",
-                "entity_id": str(loan.id),
-                "action": "CREATE",
-                "actor_id": str(user_id) if user_id else None,
-                "changes": {
-                    "status": {"old": None, "new": LoanStatus.PENDING.value},
-                },
-            },
-        )
+        # Note: Audit job is created automatically by PostgreSQL trigger
+        # when loan is inserted into the database
 
         return loan
 
@@ -387,27 +378,16 @@ class LoanService:
             reason=reason,
         )
 
+        if not updated:
+            raise LoanNotFoundError(str(loan_id))
+
         logger.info(
             f"Loan status updated: id={loan_id}, "
             f"{current_status.value} -> {new_status.value}"
         )
 
-        # Enqueue audit job
-        await self.job_repo.enqueue(
-            queue_name="audit",
-            payload={
-                "entity_type": "loan_application",
-                "entity_id": str(loan_id),
-                "action": "STATUS_CHANGE",
-                "actor_id": str(changed_by) if changed_by else None,
-                "changes": {
-                    "status": {
-                        "old": current_status.value,
-                        "new": new_status.value,
-                    },
-                },
-            },
-        )
+        # Note: Audit job is created automatically by PostgreSQL trigger
+        # when loan status is updated in the database
 
         # Enqueue notification if approved/rejected
         if new_status in (LoanStatus.APPROVED, LoanStatus.REJECTED):

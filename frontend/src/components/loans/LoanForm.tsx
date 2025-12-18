@@ -27,36 +27,42 @@ const countries: { code: CountryCode; name: string; flag: string }[] = [
   { code: 'BR', name: 'Brasil', flag: '🇧🇷' },
 ];
 
-// Base schema
-const createLoanSchema = (countryCode: CountryCode) => {
-  const documentValidator = getDocumentValidator(countryCode);
-  const docType = getDocumentType(countryCode);
+// Base schema with dynamic document validation based on country_code
+const loanSchema = z.object({
+  country_code: z.enum(['ES', 'MX', 'CO', 'BR'] as const),
+  document_number: z
+    .string()
+    .min(1, 'Document number is required')
+    .min(5, 'Document number must be at least 5 characters')
+    .max(50, 'Document number must be at most 50 characters'),
+  full_name: z
+    .string()
+    .min(1, 'Full name is required')
+    .min(2, 'Name must be at least 2 characters')
+    .max(255, 'Name must be at most 255 characters'),
+  amount_requested: z
+    .number({ invalid_type_error: 'Amount is required' })
+    .positive('Amount must be positive')
+    .max(10000000, 'Amount too large'),
+  monthly_income: z
+    .number({ invalid_type_error: 'Income is required' })
+    .min(0, 'Income must be 0 or greater')
+    .max(10000000, 'Income too large'),
+}).superRefine((data, ctx) => {
+  // Validate document_number based on selected country_code
+  const documentValidator = getDocumentValidator(data.country_code);
+  const docType = getDocumentType(data.country_code);
+  
+  if (!documentValidator(data.document_number)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `Invalid ${docType} format`,
+      path: ['document_number'],
+    });
+  }
+});
 
-  return z.object({
-    country_code: z.enum(['ES', 'MX', 'CO', 'BR'] as const),
-    document_number: z
-      .string()
-      .min(1, 'Document number is required')
-      .refine(documentValidator, `Invalid ${docType} format`),
-    full_name: z
-      .string()
-      .min(1, 'Full name is required')
-      .min(3, 'Name must be at least 3 characters'),
-    email: z
-      .string()
-      .min(1, 'Email is required')
-      .email('Invalid email format'),
-    amount_requested: z
-      .number({ invalid_type_error: 'Amount is required' })
-      .positive('Amount must be positive')
-      .max(10000000, 'Amount too large'),
-    monthly_income: z
-      .number({ invalid_type_error: 'Income is required' })
-      .positive('Income must be positive'),
-  });
-};
-
-type LoanFormData = z.infer<ReturnType<typeof createLoanSchema>>;
+type LoanFormData = z.infer<typeof loanSchema>;
 
 const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
   const {
@@ -68,12 +74,11 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
     formState: { errors },
     trigger,
   } = useForm<LoanFormData>({
-    resolver: zodResolver(createLoanSchema('ES')),
+    resolver: zodResolver(loanSchema),
     defaultValues: {
-      country_code: 'ES',
+      country_code: 'MX',
       document_number: '',
       full_name: '',
-      email: '',
       amount_requested: undefined,
       monthly_income: undefined,
     },
@@ -90,7 +95,19 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
   }, [selectedCountry, trigger]);
 
   const handleFormSubmit = async (data: LoanFormData) => {
-    await onSubmit(data as LoanCreateRequest);
+    // Add document_type based on selected country
+    // Ensure numbers are properly formatted (FastAPI expects Decimal which accepts numbers)
+    const submitData: LoanCreateRequest = {
+      country_code: data.country_code,
+      document_type: getDocumentType(data.country_code) as LoanCreateRequest['document_type'],
+      document_number: data.document_number.trim(),
+      full_name: data.full_name.trim(),
+      amount_requested: Number(data.amount_requested),
+      monthly_income: Number(data.monthly_income),
+    };
+    
+    console.log('Submitting loan data:', submitData);
+    await onSubmit(submitData);
   };
 
   return (
@@ -137,14 +154,6 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
             placeholder="John Doe"
             error={errors.full_name?.message}
             {...register('full_name')}
-          />
-
-          <Input
-            label="Email"
-            type="email"
-            placeholder="john@example.com"
-            error={errors.email?.message}
-            {...register('email')}
           />
 
           <div className="md:col-span-2">

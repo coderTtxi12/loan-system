@@ -65,7 +65,7 @@ async def create_loan(
         )
 
         logger.info(f"Loan created: {loan.id} by user {current_user.id}")
-        return LoanResponse.model_validate(loan)
+        return LoanResponse.from_orm_with_decryption(loan)
 
     except CountryNotSupportedError as e:
         raise HTTPException(
@@ -172,7 +172,13 @@ async def get_loan(
 
     try:
         loan = await service.get_loan_by_id(loan_id)
-        return LoanDetailResponse.model_validate(loan)
+        # Create base response with decryption
+        base_response = LoanResponse.from_orm_with_decryption(loan)
+        return LoanDetailResponse(
+            **base_response.model_dump(),
+            banking_info=loan.banking_info,
+            extra_data=loan.extra_data,
+        )
     except LoanNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -251,7 +257,7 @@ async def update_loan_status(
             f"by user {current_user.id}"
         )
 
-        return LoanResponse.model_validate(loan)
+        return LoanResponse.from_orm_with_decryption(loan)
 
     except LoanNotFoundError:
         raise HTTPException(

@@ -72,7 +72,6 @@ const LoanInfo = ({ loan }: LoanInfoProps) => {
         </h3>
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <InfoRow label="Full Name">{loan.full_name}</InfoRow>
-          <InfoRow label="Email">{loan.email}</InfoRow>
           <InfoRow label="Document Type">{loan.document_type}</InfoRow>
           <InfoRow label="Document Number">
             <span className="font-mono">{loan.document_number}</span>

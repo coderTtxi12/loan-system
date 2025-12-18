@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install dependencies first (for better caching)
 COPY package*.json ./
-RUN npm ci --silent
+RUN npm install --silent
 
 # Copy source code
 COPY . .
@@ -41,9 +41,9 @@ USER nginx
 # Expose port
 EXPOSE 80
 
-# Health check
+# Health check (using wget since alpine doesn't have curl)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:80 || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:80 || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

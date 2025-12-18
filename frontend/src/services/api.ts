@@ -3,9 +3,12 @@
  */
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
+// Get API URL from environment variable or use default
+const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
 // Create axios instance
 export const api: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -89,7 +92,7 @@ api.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post('/api/auth/refresh', {
+        const response = await axios.post('/api/v1/auth/refresh', {
           refresh_token: refreshToken,
         });
 

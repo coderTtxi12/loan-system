@@ -29,7 +29,6 @@ export interface Loan {
   document_type: DocumentType;
   document_number: string;
   full_name: string;
-  email: string;
   amount_requested: number;
   currency: string;
   monthly_income: number;
@@ -46,9 +45,9 @@ export interface Loan {
 
 export interface LoanCreateRequest {
   country_code: CountryCode;
+  document_type: DocumentType;
   document_number: string;
   full_name: string;
-  email: string;
   amount_requested: number;
   monthly_income: number;
 }

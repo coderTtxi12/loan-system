@@ -100,13 +100,16 @@ class LoanRepository(BaseRepository[LoanApplication]):
             country_code: Optional country filter
 
         Returns:
-            LoanApplication or None
+            LoanApplication or None (first match if multiple exist)
         """
         query = select(LoanApplication).where(
             LoanApplication.document_hash == document_hash
         )
         if country_code:
             query = query.where(LoanApplication.country_code == country_code)
+        
+        # Order by created_at desc to get the most recent one if multiple exist
+        query = query.order_by(LoanApplication.created_at.desc()).limit(1)
 
         result = await self.session.execute(query)
         return result.scalar_one_or_none()

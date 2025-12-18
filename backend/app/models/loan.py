@@ -18,6 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.pii_encryption import decrypt_pii
 from app.db.base import Base
 
 
@@ -65,7 +66,7 @@ class LoanApplication(Base):
         comment="Document type: DNI, CURP, CC, CPF",
     )
     document_number: Mapped[str] = mapped_column(
-        String(50),
+        String(255),  # Increased for encrypted PII (Fernet tokens can be ~88+ chars)
         nullable=False,
         comment="Encrypted document number (PII)",
     )
@@ -171,6 +172,34 @@ class LoanApplication(Base):
             "comment": "Loan applications partitioned by country_code",
         },
     )
+
+    @property
+    def decrypted_document_number(self) -> str:
+        """
+        Get decrypted document number.
+        
+        Returns:
+            Decrypted document number
+        """
+        try:
+            return decrypt_pii(self.document_number)
+        except Exception:
+            # If decryption fails, return as-is (might be unencrypted legacy data)
+            return self.document_number
+
+    @property
+    def decrypted_full_name(self) -> str:
+        """
+        Get decrypted full name.
+        
+        Returns:
+            Decrypted full name
+        """
+        try:
+            return decrypt_pii(self.full_name)
+        except Exception:
+            # If decryption fails, return as-is (might be unencrypted legacy data)
+            return self.full_name
 
     def __repr__(self) -> str:
         return f"<LoanApplication(id={self.id}, country={self.country_code}, status={self.status.value})>"

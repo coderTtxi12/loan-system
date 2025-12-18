@@ -9,11 +9,15 @@ import { addNotification } from '@/store/slices/uiSlice';
 import { LoanForm } from '@/components/loans';
 import type { LoanCreateRequest } from '@/types/loan';
 
+interface ErrorInfo {
+  message: string;
+}
+
 const CreateLoan = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ErrorInfo | null>(null);
 
   const handleSubmit = async (data: LoanCreateRequest) => {
     setLoading(true);
@@ -33,11 +37,26 @@ const CreateLoan = () => {
       // Redirect to the new loan's detail page
       navigate(`/loans/${result.id}`);
     } catch (err: any) {
-      setError(err?.message || 'Failed to create loan application');
+      // Handle error object with message from rejectWithValue
+      // err can be either { message, errors } object or a string (legacy)
+      let errorInfo: ErrorInfo;
+      
+      if (typeof err === 'string') {
+        errorInfo = { message: err };
+      } else if (err?.message) {
+        errorInfo = {
+          message: err.message,
+        };
+      } else {
+        errorInfo = { message: 'Failed to create loan application' };
+      }
+      
+      setError(errorInfo);
+      
       dispatch(
         addNotification({
           type: 'error',
-          message: err?.message || 'Failed to create loan application',
+          message: errorInfo.message,
           duration: 5000,
         })
       );
@@ -69,7 +88,7 @@ const CreateLoan = () => {
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex items-center gap-2">
             <span className="text-red-500">❌</span>
-            <p className="text-sm text-red-700">{error}</p>
+            <p className="text-sm text-red-700">{error.message}</p>
           </div>
         </div>
       )}

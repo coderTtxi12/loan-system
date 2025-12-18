@@ -19,6 +19,7 @@ redis==5.0.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
+cryptography==42.0.5  # For PII encryption
 
 # HTTP Client
 httpx==0.26.0
