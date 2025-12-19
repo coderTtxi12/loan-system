@@ -39,7 +39,7 @@ Sistema de gestión de solicitudes de préstamos diseñado para operar en múlti
 #### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/coderTtxi12/loan-system.git
-cd loan
+cd loan-system
 ```
 
 #### 2. Configurar variables de entorno
@@ -109,8 +109,8 @@ docker compose down -v
 
 #### 1. Clonar el repositorio
 ```bash
-git clone <repository-url>
-cd loan
+git clone https://github.com/coderTtxi12/loan-system.git
+cd loan-system
 ```
 
 #### 2. Configurar variables de entorno
