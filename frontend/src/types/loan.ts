@@ -17,11 +17,22 @@ export type CountryCode = 'ES' | 'MX' | 'CO' | 'BR';
 export type DocumentType = 'DNI' | 'CURP' | 'CC' | 'CPF';
 
 export interface BankingInfo {
-  provider: string;
-  loan_score: number | null;
-  total_debt: number | null;
-  active_loans: number;
-  payment_history: string | null;
+  provider_name?: string;
+  provider?: string; // backward compatibility
+  credit_score?: number | null;
+  loan_score?: number | null; // backward compatibility
+  total_debt?: number | string | null;
+  active_loans?: number;
+  payment_history?: string | null;
+  payment_history_score?: number | null;
+  has_defaults?: boolean;
+  default_count?: number;
+  income_verified?: boolean;
+  employment_verified?: boolean;
+  available_credit?: number | string | null;
+  account_age_months?: number | null;
+  monthly_obligations?: number | string | null;
+  [key: string]: any; // Allow additional fields
 }
 
 export interface Loan {
@@ -37,11 +48,17 @@ export interface Loan {
   risk_score: number | null;
   requires_review: boolean;
   banking_info: BankingInfo | null;
-  metadata: Record<string, any>;
+  extra_data?: {
+    risk_factors?: Record<string, any>;
+    validation_warnings?: string[];
+    [key: string]: any;
+  };
+  metadata?: Record<string, any>; // backward compatibility
   created_at: string;
   updated_at: string;
-  created_by_id: string | null;
-  reviewed_by_id: string | null;
+  processed_at?: string | null;
+  created_by_id?: string | null;
+  reviewed_by_id?: string | null;
 }
 
 export interface LoanCreateRequest {

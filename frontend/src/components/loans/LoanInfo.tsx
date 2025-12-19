@@ -108,18 +108,130 @@ const LoanInfo = ({ loan }: LoanInfoProps) => {
             Banking Information
           </h3>
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <InfoRow label="Provider">{loan.banking_info.provider}</InfoRow>
-            {loan.banking_info.loan_score !== null && (
-              <InfoRow label="Credit Score">{loan.banking_info.loan_score}</InfoRow>
-            )}
-            {loan.banking_info.total_debt !== null && (
-              <InfoRow label="Total Debt">
-                {formatCurrency(loan.banking_info.total_debt, loan.currency)}
+            {(loan.banking_info.provider_name || loan.banking_info.provider) && (
+              <InfoRow label="Provider">
+                {loan.banking_info.provider_name || loan.banking_info.provider}
               </InfoRow>
             )}
-            <InfoRow label="Active Loans">{loan.banking_info.active_loans}</InfoRow>
+            {(loan.banking_info.credit_score !== null && loan.banking_info.credit_score !== undefined) && (
+              <InfoRow label="Credit Score">{loan.banking_info.credit_score}</InfoRow>
+            )}
+            {(loan.banking_info.loan_score !== null && loan.banking_info.loan_score !== undefined && !loan.banking_info.credit_score) && (
+              <InfoRow label="Credit Score">{loan.banking_info.loan_score}</InfoRow>
+            )}
+            {loan.banking_info.total_debt !== null && loan.banking_info.total_debt !== undefined && (
+              <InfoRow label="Total Debt">
+                {formatCurrency(
+                  typeof loan.banking_info.total_debt === 'string' 
+                    ? parseFloat(loan.banking_info.total_debt) 
+                    : loan.banking_info.total_debt,
+                  loan.currency
+                )}
+              </InfoRow>
+            )}
+            {loan.banking_info.monthly_obligations !== null && loan.banking_info.monthly_obligations !== undefined && (
+              <InfoRow label="Monthly Obligations">
+                {formatCurrency(
+                  typeof loan.banking_info.monthly_obligations === 'string'
+                    ? parseFloat(loan.banking_info.monthly_obligations)
+                    : loan.banking_info.monthly_obligations,
+                  loan.currency
+                )}
+              </InfoRow>
+            )}
+            {loan.banking_info.available_credit !== null && loan.banking_info.available_credit !== undefined && (
+              <InfoRow label="Available Credit">
+                {formatCurrency(
+                  typeof loan.banking_info.available_credit === 'string'
+                    ? parseFloat(loan.banking_info.available_credit)
+                    : loan.banking_info.available_credit,
+                  loan.currency
+                )}
+              </InfoRow>
+            )}
+            {loan.banking_info.account_age_months !== null && loan.banking_info.account_age_months !== undefined && (
+              <InfoRow label="Account Age">
+                {loan.banking_info.account_age_months} months
+              </InfoRow>
+            )}
+            {loan.banking_info.payment_history_score !== null && loan.banking_info.payment_history_score !== undefined && (
+              <InfoRow label="Payment History Score">
+                {loan.banking_info.payment_history_score}/100
+              </InfoRow>
+            )}
             {loan.banking_info.payment_history && (
               <InfoRow label="Payment History">{loan.banking_info.payment_history}</InfoRow>
+            )}
+            {loan.banking_info.has_defaults !== undefined && (
+              <InfoRow label="Has Defaults">
+                <span className={loan.banking_info.has_defaults ? 'text-red-600 font-semibold' : 'text-green-600'}>
+                  {loan.banking_info.has_defaults ? 'Yes' : 'No'}
+                </span>
+              </InfoRow>
+            )}
+            {loan.banking_info.default_count !== undefined && loan.banking_info.default_count > 0 && (
+              <InfoRow label="Default Count">
+                <span className="text-red-600 font-semibold">{loan.banking_info.default_count}</span>
+              </InfoRow>
+            )}
+            {loan.banking_info.income_verified !== undefined && (
+              <InfoRow label="Income Verified">
+                <span className={loan.banking_info.income_verified ? 'text-green-600' : 'text-gray-500'}>
+                  {loan.banking_info.income_verified ? '✓ Verified' : '✗ Not Verified'}
+                </span>
+              </InfoRow>
+            )}
+            {loan.banking_info.employment_verified !== undefined && (
+              <InfoRow label="Employment Verified">
+                <span className={loan.banking_info.employment_verified ? 'text-green-600' : 'text-gray-500'}>
+                  {loan.banking_info.employment_verified ? '✓ Verified' : '✗ Not Verified'}
+                </span>
+              </InfoRow>
+            )}
+            {loan.banking_info.active_loans !== undefined && (
+              <InfoRow label="Active Loans">{loan.banking_info.active_loans}</InfoRow>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Risk Factors & Warnings */}
+      {loan.extra_data && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 uppercase mb-3">
+            Risk Analysis
+          </h3>
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            {loan.extra_data.risk_factors && Object.keys(loan.extra_data.risk_factors).length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-gray-700 mb-2">Risk Factors:</p>
+                <div className="space-y-1">
+                  {Object.entries(loan.extra_data.risk_factors).map(([key, value]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-gray-600 capitalize">
+                        {key.replace(/_/g, ' ')}:
+                      </span>
+                      <span className="text-gray-900 font-medium">
+                        {typeof value === 'boolean' ? (value ? 'Yes' : 'No') : 
+                         typeof value === 'number' && value < 1 ? `${(value * 100).toFixed(1)}%` :
+                         String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {loan.extra_data.validation_warnings && loan.extra_data.validation_warnings.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-yellow-700 mb-2">Validation Warnings:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {loan.extra_data.validation_warnings.map((warning, index) => (
+                    <li key={index} className="text-sm text-yellow-600">
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         </div>
@@ -133,6 +245,9 @@ const LoanInfo = ({ loan }: LoanInfoProps) => {
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <InfoRow label="Created">{formatDate(loan.created_at)}</InfoRow>
           <InfoRow label="Last Updated">{formatDate(loan.updated_at)}</InfoRow>
+          {loan.processed_at && (
+            <InfoRow label="Processed">{formatDate(loan.processed_at)}</InfoRow>
+          )}
         </div>
       </div>
     </div>

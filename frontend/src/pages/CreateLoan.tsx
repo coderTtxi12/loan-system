@@ -11,6 +11,7 @@ import type { LoanCreateRequest } from '@/types/loan';
 
 interface ErrorInfo {
   message: string;
+  errors?: string[];
 }
 
 const CreateLoan = () => {
@@ -46,6 +47,7 @@ const CreateLoan = () => {
       } else if (err?.message) {
         errorInfo = {
           message: err.message,
+          errors: err.errors || [],
         };
       } else {
         errorInfo = { message: 'Failed to create loan application' };
@@ -86,9 +88,20 @@ const CreateLoan = () => {
       {/* Error message */}
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
             <span className="text-red-500">❌</span>
-            <p className="text-sm text-red-700">{error.message}</p>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-700">{error.message}</p>
+              {error.errors && error.errors.length > 0 && (
+                <ul className="mt-2 ml-4 list-disc space-y-1">
+                  {error.errors.map((err, index) => (
+                    <li key={index} className="text-sm text-red-600">
+                      {err}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
       )}
