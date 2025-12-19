@@ -107,66 +107,75 @@ docker compose down -v
 
 ### Desarrollo Local
 
+**🚀 Setup completo con un solo comando:**
+
 #### 1. Clonar el repositorio
 ```bash
 git clone https://github.com/coderTtxi12/loan-system.git
 cd loan-system
 ```
 
-#### 2. Configurar variables de entorno
-
-**Backend:**
-```bash
-cp backend/.env.example backend/.env
-```
-
-**Frontend:**
-```bash
-cp frontend/.env.example frontend/.env
-```
-
-#### 3. Levantar PostgreSQL y Redis
-```bash
-docker compose up -d postgres redis
-```
-
-Espera a que los servicios estén saludables:
-```bash
-docker compose ps
-```
-
-#### 4. Instalar dependencias
-```bash
-make install
-```
-
-Esto instalará:
-- Dependencias de Python en un entorno virtual (`backend/.venv`)
-- Dependencias de Node.js (`frontend/node_modules`)
-
-#### 5. Ejecutar migraciones de base de datos
-```bash
-make migrate
-```
-
-#### 6. Cargar usuarios de demostración (seed)
-```bash
-make seed
-```
-
-#### 7. Iniciar los servidores de desarrollo
+#### 2. Ejecutar setup completo
 ```bash
 make dev
 ```
+
+Este comando automáticamente:
+- ✅ Crea archivos `.env` desde `.env.example` (si no existen)
+- ✅ Levanta PostgreSQL y Redis con Docker Compose
+- ✅ Espera a que los servicios estén saludables
+- ✅ Instala dependencias (Python y Node.js)
+- ✅ Ejecuta migraciones de base de datos
+- ✅ Carga usuarios de demostración (seed)
+- ✅ Inicia backend, workers y frontend
+
+**Primera vez:** El comando puede tardar unos minutos en instalar dependencias y configurar la base de datos.
+
+**Siguientes veces:** Solo inicia los servidores (más rápido).
 
 | Servicio | URL |
 |----------|-----|
 | 🖥️ **Frontend** | http://localhost:5173 |
 | 🔧 **API Docs** | http://localhost:8000/docs |
 
+**🔐 Credenciales de Demo:**
+| Rol | Email | Password |
+|-----|-------|----------|
+| Admin | `admin@loan.com` | `admin123` |
+| Analyst | `analyst@loan.com` | `analyst123` |
+| Viewer | `viewer@loan.com` | `viewer123` |
+
+#### Comandos individuales (opcional)
+
+Si prefieres ejecutar los pasos manualmente:
+
+```bash
+# 1. Configurar variables de entorno
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+# 2. Levantar servicios
+docker compose up -d postgres redis
+
+# 3. Instalar dependencias
+make install
+
+# 4. Ejecutar migraciones
+make migrate
+
+# 5. Cargar seed
+make seed
+
+# 6. Iniciar servidores (solo backend, workers y frontend)
+make dev-only
+```
+
 ### Iniciar servicios por separado
 
 ```bash
+# Solo servidores (sin setup) - útil después de la primera vez
+make dev-only
+
 # Solo backend
 make dev-backend
 
@@ -182,25 +191,38 @@ make workers
 | Comando | Descripción |
 |---------|-------------|
 | `make help` | Mostrar ayuda con todos los comandos |
+| `make venv` | Crear entorno virtual de Python |
 | `make install` | Instalar dependencias (backend + frontend) |
-| `make dev` | Iniciar servidores de desarrollo |
+| `make dev` | **Setup completo y iniciar servidores** (recomendado para primera vez) |
+| `make dev-only` | Iniciar solo servidores (backend, workers, frontend) |
 | `make dev-backend` | Iniciar solo el backend |
 | `make dev-frontend` | Iniciar solo el frontend |
 | `make test` | Ejecutar todos los tests |
 | `make test-backend` | Ejecutar tests del backend |
-| `make test-coverage` | Ejecutar tests con cobertura |
-| `make lint` | Ejecutar linters |
+| `make test-coverage` | Ejecutar tests con cobertura detallada |
+| `make lint` | Ejecutar linters (black, isort, flake8, mypy) |
+| `make format` | Formatear código (black + isort) |
 | `make migrate` | Ejecutar migraciones de DB |
 | `make migrate-create msg="descripcion"` | Crear nueva migración |
 | `make seed` | Cargar usuarios de demostración |
 | `make workers` | Ejecutar todos los workers |
-| `make worker-risk` | Ejecutar worker de riesgo |
+| `make worker-risk` | Ejecutar worker de evaluación de riesgo |
 | `make worker-audit` | Ejecutar worker de auditoría |
 | `make worker-webhook` | Ejecutar worker de webhooks |
+| `make check-workers` | Verificar si los workers están corriendo |
+| `make check-services` | Verificar estado de todos los servicios |
+| `make check` | Verificar configuración y servicios |
+| `make logs-backend` | Mostrar logs del backend |
+| `make logs-frontend` | Mostrar logs del frontend |
+| `make logs-workers` | Mostrar logs de los workers |
 | `make docker-build` | Construir imágenes Docker |
 | `make docker-up` | Levantar servicios con Docker Compose |
 | `make docker-down` | Detener servicios Docker |
+| `make reset-db CONFIRM=y` | Resetear base de datos (drop + migrate + seed) |
 | `make clean` | Limpiar archivos generados |
+| `make clean-venv` | Eliminar entorno virtual |
+| `make clean-all` | Limpieza completa (incluye venv) |
+| `make setup` | Setup completo (install + migrate + seed) |
 
 ---
 

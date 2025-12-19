@@ -1,4 +1,5 @@
 """Brazil (BR) country strategy implementation."""
+import hashlib
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -204,7 +205,10 @@ class BrazilStrategy(CountryStrategy):
 
         In production, this would call the actual Serasa API.
         """
-        seed = hash(document_number) % 1000
+        # Generate simulated data based on document
+        # Use deterministic hash (SHA256) instead of Python's hash() which is randomized
+        hash_bytes = hashlib.sha256(document_number.encode('utf-8')).digest()
+        seed = int.from_bytes(hash_bytes[:2], 'big') % 1000  # Use first 2 bytes for seed
 
         # Serasa score is 0-1000
         serasa_score = 300 + (seed % 600)  # 300-899

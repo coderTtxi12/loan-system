@@ -90,12 +90,12 @@ const LoanForm = ({ onSubmit, loading = false }: LoanFormProps) => {
   const docType = getDocumentType(selectedCountry);
   const docPlaceholder = getDocumentPlaceholder(selectedCountry);
 
-  // Valid document examples for testing
+  // Valid document examples for testing (deterministic - always pass)
   const documentExamples: Record<CountryCode, string> = {
-    ES: '12345678Z', // DNI válido (checksum: 12345678 % 23 = 0 -> Z)
-    MX: 'KYBB010115HDFDFCX0', // CURP válido (fecha válida: 01/01/15, estado DF válido)
-    CO: '1234567890', // CC válido (6-10 dígitos, no empieza con 0)
-    BR: '12345678901', // CPF formato válido (11 dígitos, backend validará checksum)
+    ES: '12345678Z', // DNI válido (checksum: 12345678 % 23 = 0 -> Z, score: 67)
+    MX: 'FZPY690627HJCYITG3', // CURP válido (fecha válida: 27/06/69, estado JC válido, score: 746)
+    CO: '1000000', // CC válido (6-10 dígitos, score: 654)
+    BR: '12345678909', // CPF válido (11 dígitos, score: 757)
   };
 
   const handleUseExample = () => {

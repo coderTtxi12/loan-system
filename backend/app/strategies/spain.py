@@ -1,4 +1,5 @@
 """Spain (ES) country strategy implementation."""
+import hashlib
 import random
 from decimal import Decimal
 from typing import Optional
@@ -229,8 +230,9 @@ class SpainStrategy(CountryStrategy):
         # await asyncio.sleep(0.1)
 
         # Generate simulated banking data
-        # Use document hash for reproducible results in testing
-        seed = hash(document_number) % 1000
+        # Use deterministic hash (SHA256) instead of Python's hash() which is randomized
+        hash_bytes = hashlib.sha256(document_number.encode('utf-8')).digest()
+        seed = int.from_bytes(hash_bytes[:2], 'big') % 1000  # Use first 2 bytes for seed
 
         return BankingInfo(
             provider_name="CIRBE_ES",

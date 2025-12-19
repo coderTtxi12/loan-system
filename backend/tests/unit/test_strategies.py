@@ -19,8 +19,8 @@ class TestMexicoStrategy:
 
     def test_validate_curp_valid(self):
         """Test valid CURP validation."""
-        # Valid CURP: KYBB010115HDFDFCX0
-        result = self.strategy.validate_document("CURP", "KYBB010115HDFDFCX0")
+        # Valid CURP: FZPY690627HJCYITG3
+        result = self.strategy.validate_document("CURP", "FZPY690627HJCYITG3")
         assert result.is_valid is True
         assert len(result.errors) == 0
 
@@ -38,7 +38,7 @@ class TestMexicoStrategy:
 
     def test_validate_curp_invalid_document_type(self):
         """Test CURP with wrong document type."""
-        result = self.strategy.validate_document("DNI", "KYBB010115HDFDFCX0")
+        result = self.strategy.validate_document("DNI", "FZPY690627HJCYITG3")
         assert result.is_valid is False
         assert any("CURP" in error for error in result.errors)
 
