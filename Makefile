@@ -98,7 +98,7 @@ dev-frontend:
 ## Run tests (backend only)
 test: venv
 	@echo "${GREEN}Running backend tests...${RESET}"
-	@cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html --cov-report=term
+	@cd backend && .venv/bin/pytest -v --cov=app --cov-report=html --cov-report=term
 	@echo ""
 	@echo "${GREEN}✅ Test execution complete${RESET}"
 
@@ -108,34 +108,34 @@ test-backend: test
 ## Run tests with coverage report
 test-coverage: venv
 	@echo "${GREEN}Running tests with coverage...${RESET}"
-	@cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html --cov-report=term-missing
+	@cd backend && .venv/bin/pytest -v --cov=app --cov-report=html --cov-report=term-missing
 	@echo ""
 	@echo "${GREEN}Coverage report generated in backend/htmlcov/index.html${RESET}"
 
 ## Run linters
 lint: venv
 	@echo "${GREEN}Linting backend...${RESET}"
-	cd backend && ../$(VENV_BIN)/black app/ tests/
-	cd backend && ../$(VENV_BIN)/isort app/ tests/
-	cd backend && ../$(VENV_BIN)/flake8 app/ tests/
-	cd backend && ../$(VENV_BIN)/mypy app/
+	cd backend && .venv/bin/black app/ tests/
+	cd backend && .venv/bin/isort app/ tests/
+	cd backend && .venv/bin/flake8 app/ tests/
+	cd backend && .venv/bin/mypy app/
 	@echo "${GREEN}Linting frontend...${RESET}"
 	cd frontend && npm run lint
 
 ## Run database migrations
 migrate: venv
 	@echo "${GREEN}Running migrations...${RESET}"
-	cd backend && ../$(VENV_BIN)/alembic upgrade head
+	cd backend && .venv/bin/alembic upgrade head
 
 ## Create new migration
 migrate-create: venv
 	@echo "${GREEN}Creating migration: $(msg)${RESET}"
-	cd backend && ../$(VENV_BIN)/alembic revision --autogenerate -m "$(msg)"
+	cd backend && .venv/bin/alembic revision --autogenerate -m "$(msg)"
 
 ## Seed database with demo data
 seed: venv
 	@echo "${GREEN}Seeding database...${RESET}"
-	cd backend && ../$(VENV_BIN)/python -m app.db.seed
+	cd backend && .venv/bin/python -m app.db.seed
 
 ## Build Docker images
 docker-build:
@@ -203,22 +203,22 @@ setup: venv install migrate seed
 ## Run all background workers
 workers: venv
 	@echo "${GREEN}Starting all background workers...${RESET}"
-	cd backend && ../$(VENV_BIN)/python -m app.workers.run --all
+	cd backend && .venv/bin/python -m app.workers.run --all
 
 ## Run risk evaluation worker
 worker-risk: venv
 	@echo "${GREEN}Starting risk evaluation worker...${RESET}"
-	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue risk_evaluation
+	cd backend && .venv/bin/python -m app.workers.run --queue risk_evaluation
 
 ## Run audit worker
 worker-audit: venv
 	@echo "${GREEN}Starting audit worker...${RESET}"
-	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue audit
+	cd backend && .venv/bin/python -m app.workers.run --queue audit
 
 ## Run webhook worker
 worker-webhook: venv
 	@echo "${GREEN}Starting webhook worker...${RESET}"
-	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue webhook
+	cd backend && .venv/bin/python -m app.workers.run --queue webhook
 
 ## Start all services with Docker Compose
 docker-up:
@@ -263,16 +263,16 @@ reset-db: venv
 		exit 1; \
 	fi
 	@echo "${GREEN}Resetting database...${RESET}"
-	@cd backend && ../$(VENV_BIN)/alembic downgrade base 2>/dev/null || true
-	@cd backend && ../$(VENV_BIN)/alembic upgrade head
-	@cd backend && ../$(VENV_BIN)/python -m app.db.seed
+	@cd backend && .venv/bin/alembic downgrade base 2>/dev/null || true
+	@cd backend && .venv/bin/alembic upgrade head
+	@cd backend && .venv/bin/python -m app.db.seed
 	@echo "${GREEN}✅ Database reset complete${RESET}"
 
 ## Format code (black + isort only)
 format: venv
 	@echo "${GREEN}Formatting backend code...${RESET}"
-	cd backend && ../$(VENV_BIN)/black app/ tests/
-	cd backend && ../$(VENV_BIN)/isort app/ tests/
+	cd backend && .venv/bin/black app/ tests/
+	cd backend && .venv/bin/isort app/ tests/
 	@echo "${GREEN}✅ Formatting complete${RESET}"
 
 ## Verify configuration and services
