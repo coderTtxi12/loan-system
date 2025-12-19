@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint migrate seed docker-build deploy-dev deploy-staging deploy-prod venv
+.PHONY: help install dev test test-backend test-coverage lint migrate seed docker-build deploy-dev deploy-staging deploy-prod venv run setup workers worker-risk worker-audit worker-webhook docker-up docker-down check-services reset-db format check logs-backend logs-frontend logs-workers
 
 # Colors
 GREEN  := $(shell tput -Txterm setaf 2)
@@ -26,7 +26,9 @@ help:
 	@echo '  ${YELLOW}dev${RESET}            Start development servers'
 	@echo '  ${YELLOW}dev-backend${RESET}    Start only backend server'
 	@echo '  ${YELLOW}dev-frontend${RESET}   Start only frontend server'
-	@echo '  ${YELLOW}test${RESET}           Run all tests'
+	@echo '  ${YELLOW}test${RESET}           Run backend tests'
+	@echo '  ${YELLOW}test-backend${RESET}    Alias for test (backend tests)'
+	@echo '  ${YELLOW}test-coverage${RESET}   Run tests with detailed coverage report'
 	@echo '  ${YELLOW}lint${RESET}           Run linters'
 	@echo '  ${YELLOW}migrate${RESET}        Run database migrations'
 	@echo '  ${YELLOW}seed${RESET}           Seed database with demo users'
@@ -34,6 +36,21 @@ help:
 	@echo '  ${YELLOW}deploy-dev${RESET}     Deploy to development'
 	@echo '  ${YELLOW}deploy-staging${RESET} Deploy to staging'
 	@echo '  ${YELLOW}deploy-prod${RESET}    Deploy to production'
+	@echo '  ${YELLOW}setup${RESET}          Complete initial setup (install + migrate + seed)'
+	@echo '  ${YELLOW}run${RESET}            Alias for dev (start development servers)'
+	@echo '  ${YELLOW}workers${RESET}        Run all background workers'
+	@echo '  ${YELLOW}worker-risk${RESET}    Run risk evaluation worker'
+	@echo '  ${YELLOW}worker-audit${RESET}   Run audit worker'
+	@echo '  ${YELLOW}worker-webhook${RESET} Run webhook worker'
+	@echo '  ${YELLOW}docker-up${RESET}      Start all services with Docker Compose'
+	@echo '  ${YELLOW}docker-down${RESET}    Stop all Docker Compose services'
+	@echo '  ${YELLOW}check-services${RESET} Check if required services are running'
+	@echo '  ${YELLOW}reset-db${RESET}       Reset database (drop + migrate + seed)'
+	@echo '  ${YELLOW}format${RESET}         Format code (black + isort)'
+	@echo '  ${YELLOW}check${RESET}          Verify configuration and services'
+	@echo '  ${YELLOW}logs-backend${RESET}   Show backend logs'
+	@echo '  ${YELLOW}logs-frontend${RESET}  Show frontend logs'
+	@echo '  ${YELLOW}logs-workers${RESET}  Show workers logs'
 	@echo '  ${YELLOW}clean${RESET}          Clean up generated files'
 	@echo ''
 
@@ -78,20 +95,22 @@ dev-frontend:
 	@echo "${GREEN}Starting frontend...${RESET}"
 	cd frontend && npm run dev
 
-## Run tests
+## Run tests (backend only)
 test: venv
 	@echo "${GREEN}Running backend tests...${RESET}"
-	cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html
-	@echo "${GREEN}Running frontend tests...${RESET}"
-	cd frontend && npm test
+	@cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html --cov-report=term
+	@echo ""
+	@echo "${GREEN}✅ Test execution complete${RESET}"
 
-## Run backend tests only
-test-backend: venv
-	cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html
+## Run backend tests only (alias for test)
+test-backend: test
 
-## Run frontend tests only
-test-frontend:
-	cd frontend && npm test
+## Run tests with coverage report
+test-coverage: venv
+	@echo "${GREEN}Running tests with coverage...${RESET}"
+	@cd backend && ../$(VENV_BIN)/pytest -v --cov=app --cov-report=html --cov-report=term-missing
+	@echo ""
+	@echo "${GREEN}Coverage report generated in backend/htmlcov/index.html${RESET}"
 
 ## Run linters
 lint: venv
@@ -168,3 +187,126 @@ clean-venv:
 ## Full clean (including venv)
 clean-all: clean clean-venv
 	@echo "${GREEN}✅ Full clean complete${RESET}"
+
+## Alias for dev (as mentioned in requirements)
+run: dev
+
+## Complete initial setup
+setup: venv install migrate seed
+	@echo "${GREEN}✅ Setup complete!${RESET}"
+	@echo ""
+	@echo "${YELLOW}Next steps:${RESET}"
+	@echo "  1. Start services: ${GREEN}make docker-up${RESET} or ${GREEN}make dev${RESET}"
+	@echo "  2. Access frontend: ${GREEN}http://localhost:3000${RESET}"
+	@echo "  3. Access API docs: ${GREEN}http://localhost:8000/docs${RESET}"
+
+## Run all background workers
+workers: venv
+	@echo "${GREEN}Starting all background workers...${RESET}"
+	cd backend && ../$(VENV_BIN)/python -m app.workers.run --all
+
+## Run risk evaluation worker
+worker-risk: venv
+	@echo "${GREEN}Starting risk evaluation worker...${RESET}"
+	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue risk_evaluation
+
+## Run audit worker
+worker-audit: venv
+	@echo "${GREEN}Starting audit worker...${RESET}"
+	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue audit
+
+## Run webhook worker
+worker-webhook: venv
+	@echo "${GREEN}Starting webhook worker...${RESET}"
+	cd backend && ../$(VENV_BIN)/python -m app.workers.run --queue webhook
+
+## Start all services with Docker Compose
+docker-up:
+	@echo "${GREEN}Starting all services with Docker Compose...${RESET}"
+	docker compose up -d
+	@echo "${GREEN}✅ Services started${RESET}"
+	@echo ""
+	@echo "${YELLOW}Services:${RESET}"
+	@echo "  - Frontend: http://localhost:3000"
+	@echo "  - Backend: http://localhost:8000"
+	@echo "  - API Docs: http://localhost:8000/docs"
+	@echo "  - pgAdmin: http://localhost:5050 (if enabled)"
+
+## Stop all Docker Compose services
+docker-down:
+	@echo "${GREEN}Stopping all Docker Compose services...${RESET}"
+	docker compose down
+	@echo "${GREEN}✅ Services stopped${RESET}"
+
+## Check if required services are running
+check-services:
+	@echo "${GREEN}Checking services...${RESET}"
+	@echo ""
+	@echo "PostgreSQL:"
+	@docker compose ps postgres | grep -q "Up" && echo "  ${GREEN}✅ Running${RESET}" || echo "  ${YELLOW}⚠️  Not running${RESET}"
+	@echo ""
+	@echo "Redis:"
+	@docker compose ps redis | grep -q "Up" && echo "  ${GREEN}✅ Running${RESET}" || echo "  ${YELLOW}⚠️  Not running${RESET}"
+	@echo ""
+	@echo "Backend:"
+	@docker compose ps backend 2>/dev/null | grep -q "Up" && echo "  ${GREEN}✅ Running${RESET}" || echo "  ${YELLOW}⚠️  Not running (optional)${RESET}"
+	@echo ""
+	@echo "Frontend:"
+	@docker compose ps frontend 2>/dev/null | grep -q "Up" && echo "  ${GREEN}✅ Running${RESET}" || echo "  ${YELLOW}⚠️  Not running (optional)${RESET}"
+
+## Reset database (drop + migrate + seed)
+## Usage: make reset-db [CONFIRM=y]
+reset-db: venv
+	@if [ "$(CONFIRM)" != "y" ]; then \
+		echo "${YELLOW}⚠️  This will reset the database!${RESET}"; \
+		echo "${YELLOW}Run with CONFIRM=y to proceed: make reset-db CONFIRM=y${RESET}"; \
+		exit 1; \
+	fi
+	@echo "${GREEN}Resetting database...${RESET}"
+	@cd backend && ../$(VENV_BIN)/alembic downgrade base 2>/dev/null || true
+	@cd backend && ../$(VENV_BIN)/alembic upgrade head
+	@cd backend && ../$(VENV_BIN)/python -m app.db.seed
+	@echo "${GREEN}✅ Database reset complete${RESET}"
+
+## Format code (black + isort only)
+format: venv
+	@echo "${GREEN}Formatting backend code...${RESET}"
+	cd backend && ../$(VENV_BIN)/black app/ tests/
+	cd backend && ../$(VENV_BIN)/isort app/ tests/
+	@echo "${GREEN}✅ Formatting complete${RESET}"
+
+## Verify configuration and services
+check: venv check-services
+	@echo ""
+	@echo "${GREEN}Checking configuration...${RESET}"
+	@if [ ! -f "backend/.env" ]; then \
+		echo "${YELLOW}⚠️  backend/.env not found. Copy from backend/.env.example${RESET}"; \
+	else \
+		echo "${GREEN}✅ backend/.env exists${RESET}"; \
+	fi
+	@if [ ! -f "frontend/.env" ]; then \
+		echo "${YELLOW}⚠️  frontend/.env not found. Copy from frontend/.env.example${RESET}"; \
+	else \
+		echo "${GREEN}✅ frontend/.env exists${RESET}"; \
+	fi
+	@echo ""
+	@echo "${GREEN}Checking Python virtual environment...${RESET}"
+	@if [ -d "$(VENV_DIR)" ]; then \
+		echo "${GREEN}✅ Virtual environment exists${RESET}"; \
+	else \
+		echo "${YELLOW}⚠️  Virtual environment not found. Run: make venv${RESET}"; \
+	fi
+	@echo ""
+	@echo "${GREEN}✅ Configuration check complete${RESET}"
+
+## Show backend logs
+logs-backend:
+	docker compose logs -f backend
+
+## Show frontend logs
+logs-frontend:
+	docker compose logs -f frontend
+
+## Show workers logs
+logs-workers:
+	docker compose logs -f worker-risk worker-audit worker-webhook
