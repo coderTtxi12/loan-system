@@ -27,9 +27,8 @@ spec:
         - name: worker-risk
           image: loan-workers:latest
           imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.workers.run", "--queue", "risk_evaluation"]
           env:
-            - name: WORKER_QUEUE
-              value: "risk_evaluation"
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
@@ -79,11 +78,11 @@ spec:
                   key: REDIS_PORT
             - name: REDIS_URL
               value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
-            - name: JWT_SECRET_KEY
+            - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: loan-system-secrets
-                  key: JWT_SECRET_KEY
+                  key: JWT_SECRET
             - name: WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
@@ -107,9 +106,8 @@ spec:
         - name: worker-audit
           image: loan-workers:latest
           imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.workers.run", "--queue", "audit"]
           env:
-            - name: WORKER_QUEUE
-              value: "audit"
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
@@ -159,11 +157,11 @@ spec:
                   key: REDIS_PORT
             - name: REDIS_URL
               value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
-            - name: JWT_SECRET_KEY
+            - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: loan-system-secrets
-                  key: JWT_SECRET_KEY
+                  key: JWT_SECRET
             - name: WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
@@ -187,9 +185,8 @@ spec:
         - name: worker-webhook
           image: loan-workers:latest
           imagePullPolicy: IfNotPresent
+          command: ["python", "-m", "app.workers.run", "--queue", "notifications"]
           env:
-            - name: WORKER_QUEUE
-              value: "notifications"
             - name: ENVIRONMENT
               valueFrom:
                 configMapKeyRef:
@@ -239,11 +236,11 @@ spec:
                   key: REDIS_PORT
             - name: REDIS_URL
               value: "redis://$(REDIS_HOST):$(REDIS_PORT)/0"
-            - name: JWT_SECRET_KEY
+            - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: loan-system-secrets
-                  key: JWT_SECRET_KEY
+                  key: JWT_SECRET
             - name: WEBHOOK_SECRET
               valueFrom:
                 secretKeyRef:
