@@ -1,4 +1,5 @@
 """Mexico (MX) country strategy implementation."""
+import hashlib
 import re
 from datetime import datetime
 from decimal import Decimal
@@ -207,7 +208,9 @@ class MexicoStrategy(CountryStrategy):
         In production, this would call the actual Buró de Crédito API.
         """
         # Generate simulated data based on document
-        seed = hash(document_number) % 1000
+        # Use deterministic hash (SHA256) instead of Python's hash() which is randomized
+        hash_bytes = hashlib.sha256(document_number.encode('utf-8')).digest()
+        seed = int.from_bytes(hash_bytes[:2], 'big') % 1000  # Use first 2 bytes for seed
 
         # Mexican credit scores typically range 400-850
         credit_score = 450 + (seed % 400)  # 450-849

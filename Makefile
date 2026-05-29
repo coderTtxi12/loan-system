@@ -23,7 +23,8 @@ help:
 	@echo 'Targets:'
 	@echo '  ${YELLOW}venv${RESET}           Create Python virtual environment'
 	@echo '  ${YELLOW}install${RESET}        Install all dependencies (backend + frontend)'
-	@echo '  ${YELLOW}dev${RESET}            Start development servers'
+	@echo '  ${YELLOW}dev${RESET}            Complete setup and start all servers'
+	@echo '  ${YELLOW}dev-only${RESET}       Start servers only (assumes setup done)'
 	@echo '  ${YELLOW}dev-backend${RESET}    Start only backend server'
 	@echo '  ${YELLOW}dev-frontend${RESET}   Start only frontend server'
 	@echo '  ${YELLOW}test${RESET}           Run backend tests'
@@ -51,6 +52,7 @@ help:
 	@echo '  ${YELLOW}logs-backend${RESET}   Show backend logs'
 	@echo '  ${YELLOW}logs-frontend${RESET}  Show frontend logs'
 	@echo '  ${YELLOW}logs-workers${RESET}  Show workers logs'
+	@echo '  ${YELLOW}check-workers${RESET}  Check if workers are running'
 	@echo '  ${YELLOW}clean${RESET}          Clean up generated files'
 	@echo ''
 
@@ -76,14 +78,91 @@ install: venv
 	@echo "${YELLOW}To activate the virtual environment manually:${RESET}"
 	@echo "  source $(VENV_BIN)/activate"
 
-## Start development servers
-dev: venv
-	@echo "${GREEN}Ensuring services are running (postgres, redis)...${RESET}"
+## Start development servers (complete setup)
+## This command does everything: setup, install, migrate, seed, and start servers
+dev: setup-env ensure-services install-deps migrate-db seed-db start-servers
+
+## Setup environment files (if they don't exist)
+setup-env:
+	@echo "${GREEN}Setting up environment files...${RESET}"
+	@if [ ! -f "backend/.env" ]; then \
+		echo "${YELLOW}Creating backend/.env from .env.example...${RESET}"; \
+		cp backend/.env.example backend/.env; \
+		echo "${GREEN}✅ backend/.env created${RESET}"; \
+	else \
+		echo "${GREEN}✅ backend/.env already exists${RESET}"; \
+	fi
+	@if [ ! -f "frontend/.env" ]; then \
+		echo "${YELLOW}Creating frontend/.env from .env.example...${RESET}"; \
+		cp frontend/.env.example frontend/.env; \
+		echo "${GREEN}✅ frontend/.env created${RESET}"; \
+	else \
+		echo "${GREEN}✅ frontend/.env already exists${RESET}"; \
+	fi
+
+## Ensure PostgreSQL and Redis are running
+ensure-services:
+	@echo "${GREEN}Ensuring PostgreSQL and Redis are running...${RESET}"
 	@docker compose up -d postgres redis 2>/dev/null || true
+	@echo "${GREEN}Waiting for services to be healthy...${RESET}"
+	@timeout 60 bash -c 'until docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do echo "Waiting for PostgreSQL..."; sleep 2; done' || true
+	@timeout 30 bash -c 'until docker compose exec -T redis redis-cli ping > /dev/null 2>&1; do echo "Waiting for Redis..."; sleep 1; done' || true
+	@echo "${GREEN}✅ Services are ready${RESET}"
+
+## Install dependencies (if needed)
+install-deps: venv
+	@echo "${GREEN}Checking dependencies...${RESET}"
+	@if [ ! -d "backend/.venv" ] || [ ! -f "backend/.venv/bin/python" ]; then \
+		echo "${YELLOW}Virtual environment not found, creating...${RESET}"; \
+		$(MAKE) venv; \
+	fi
+	@if [ ! -f "backend/.venv/bin/alembic" ] || [ ! -f "backend/.venv/bin/uvicorn" ]; then \
+		echo "${YELLOW}Installing backend dependencies...${RESET}"; \
+		$(VENV_PIP) install --upgrade pip; \
+		$(VENV_PIP) install --only-binary :all: -r backend/requirements-dev.txt || $(VENV_PIP) install -r backend/requirements-dev.txt; \
+		echo "${GREEN}✅ Backend dependencies installed${RESET}"; \
+	else \
+		echo "${GREEN}✅ Backend dependencies already installed${RESET}"; \
+	fi
+	@if [ ! -d "frontend/node_modules" ]; then \
+		echo "${YELLOW}Installing frontend dependencies...${RESET}"; \
+		cd frontend && npm install --legacy-peer-deps; \
+		echo "${GREEN}✅ Frontend dependencies installed${RESET}"; \
+	else \
+		echo "${GREEN}✅ Frontend dependencies already installed${RESET}"; \
+	fi
+
+## Run migrations (if needed)
+migrate-db: venv ensure-services
+	@echo "${GREEN}Running database migrations...${RESET}"
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/alembic upgrade head
+	@echo "${GREEN}✅ Migrations complete${RESET}"
+
+## Seed database (if needed)
+seed-db: venv ensure-services
+	@echo "${GREEN}Seeding database with demo users...${RESET}"
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.db.seed
+	@echo "${GREEN}✅ Seed complete${RESET}"
+
+## Start all development servers (assumes setup is already done)
+start-servers: venv
 	@echo "${GREEN}Starting backend...${RESET}"
-	$(VENV_BIN)/uvicorn app.main:socket_app --reload --host 0.0.0.0 --port 8000 --app-dir backend &
+	$(VENV_BIN)/uvicorn app.main:socket_app --reload --host 0.0.0.0 --port 8000 --app-dir backend > /tmp/loan-backend.log 2>&1 &
+	@echo "${GREEN}Backend started${RESET}"
+	@sleep 2
+	@echo "${GREEN}Starting workers...${RESET}"
+	@(cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.workers.run --all > /tmp/loan-workers.log 2>&1 &)
+	@echo "${GREEN}Workers started${RESET}"
+	@sleep 1
 	@echo "${GREEN}Starting frontend...${RESET}"
-	cd frontend && npm run dev
+	@echo "${YELLOW}Frontend will be available at: http://localhost:5173${RESET}"
+	@echo "${YELLOW}API Docs will be available at: http://localhost:8000/docs${RESET}"
+	@echo "${YELLOW}Backend logs: tail -f /tmp/loan-backend.log${RESET}"
+	@echo "${YELLOW}Workers logs: tail -f /tmp/loan-workers.log${RESET}"
+	cd frontend && VITE_API_URL=http://localhost:8000/api/v1 npm run dev
+
+## Start only servers (without setup) - alias for start-servers
+dev-only: start-servers
 
 ## Start only backend
 dev-backend: venv
@@ -93,7 +172,7 @@ dev-backend: venv
 ## Start only frontend
 dev-frontend:
 	@echo "${GREEN}Starting frontend...${RESET}"
-	cd frontend && npm run dev
+	cd frontend && VITE_API_URL=http://localhost:8000/api/v1 npm run dev
 
 ## Run tests (backend only)
 test: venv
@@ -125,7 +204,11 @@ lint: venv
 ## Run database migrations
 migrate: venv
 	@echo "${GREEN}Running migrations...${RESET}"
-	cd backend && .venv/bin/alembic upgrade head
+	@echo "${GREEN}Ensuring PostgreSQL is running...${RESET}"
+	@docker compose up -d postgres 2>/dev/null || true
+	@echo "${GREEN}Waiting for PostgreSQL to be ready...${RESET}"
+	@timeout 30 bash -c 'until docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do sleep 1; done' || true
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/alembic upgrade head
 
 ## Create new migration
 migrate-create: venv
@@ -135,7 +218,11 @@ migrate-create: venv
 ## Seed database with demo data
 seed: venv
 	@echo "${GREEN}Seeding database...${RESET}"
-	cd backend && .venv/bin/python -m app.db.seed
+	@echo "${GREEN}Ensuring PostgreSQL is running...${RESET}"
+	@docker compose up -d postgres 2>/dev/null || true
+	@echo "${GREEN}Waiting for PostgreSQL to be ready...${RESET}"
+	@timeout 30 bash -c 'until docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do sleep 1; done' || true
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.db.seed
 
 ## Build Docker images
 docker-build:
@@ -203,22 +290,22 @@ setup: venv install migrate seed
 ## Run all background workers
 workers: venv
 	@echo "${GREEN}Starting all background workers...${RESET}"
-	cd backend && .venv/bin/python -m app.workers.run --all
+	cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.workers.run --all
 
 ## Run risk evaluation worker
 worker-risk: venv
 	@echo "${GREEN}Starting risk evaluation worker...${RESET}"
-	cd backend && .venv/bin/python -m app.workers.run --queue risk_evaluation
+	cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.workers.run --queue risk_evaluation
 
 ## Run audit worker
 worker-audit: venv
 	@echo "${GREEN}Starting audit worker...${RESET}"
-	cd backend && .venv/bin/python -m app.workers.run --queue audit
+	cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.workers.run --queue audit
 
 ## Run webhook worker
 worker-webhook: venv
 	@echo "${GREEN}Starting webhook worker...${RESET}"
-	cd backend && .venv/bin/python -m app.workers.run --queue webhook
+	cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.workers.run --queue webhook
 
 ## Start all services with Docker Compose
 docker-up:
@@ -263,9 +350,13 @@ reset-db: venv
 		exit 1; \
 	fi
 	@echo "${GREEN}Resetting database...${RESET}"
-	@cd backend && .venv/bin/alembic downgrade base 2>/dev/null || true
-	@cd backend && .venv/bin/alembic upgrade head
-	@cd backend && .venv/bin/python -m app.db.seed
+	@echo "${GREEN}Ensuring PostgreSQL is running...${RESET}"
+	@docker compose up -d postgres 2>/dev/null || true
+	@echo "${GREEN}Waiting for PostgreSQL to be ready...${RESET}"
+	@timeout 30 bash -c 'until docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; do sleep 1; done' || true
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/alembic downgrade base 2>/dev/null || true
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/alembic upgrade head
+	@cd backend && DATABASE_URL="postgresql+asyncpg://postgres:postgres@localhost:5433/loans_db" .venv/bin/python -m app.db.seed
 	@echo "${GREEN}✅ Database reset complete${RESET}"
 
 ## Format code (black + isort only)
@@ -309,4 +400,28 @@ logs-frontend:
 
 ## Show workers logs
 logs-workers:
-	docker compose logs -f worker-risk worker-audit worker-webhook
+	@if [ -f "/tmp/loan-workers.log" ]; then \
+		echo "${GREEN}Showing workers logs (Ctrl+C to exit)...${RESET}"; \
+		tail -f /tmp/loan-workers.log; \
+	else \
+		echo "${YELLOW}Workers log file not found. Are workers running?${RESET}"; \
+		echo "${YELLOW}Run: make dev or make workers${RESET}"; \
+	fi
+
+## Check workers status
+check-workers:
+	@echo "${GREEN}Checking workers status...${RESET}"
+	@if pgrep -f "app.workers.run --all" > /dev/null 2>&1; then \
+		echo "${GREEN}✅ Workers are running${RESET}"; \
+		echo ""; \
+		echo "Process details:"; \
+		ps aux | grep "app.workers.run" | grep -v grep || true; \
+		echo ""; \
+		echo "To view logs: ${YELLOW}make logs-workers${RESET}"; \
+		echo "Or: ${YELLOW}tail -f /tmp/loan-workers.log${RESET}"; \
+	else \
+		echo "${YELLOW}⚠️  Workers are not running${RESET}"; \
+		echo ""; \
+		echo "To start workers: ${YELLOW}make workers${RESET}"; \
+		echo "Or: ${YELLOW}make dev${RESET} (starts everything)"; \
+	fi

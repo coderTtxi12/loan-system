@@ -1,4 +1,5 @@
 """Colombia (CO) country strategy implementation."""
+import hashlib
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
@@ -195,7 +196,10 @@ class ColombiaStrategy(CountryStrategy):
 
         In production, this would call the actual DataCrédito API.
         """
-        seed = hash(document_number) % 1000
+        # Generate simulated data based on document
+        # Use deterministic hash (SHA256) instead of Python's hash() which is randomized
+        hash_bytes = hashlib.sha256(document_number.encode('utf-8')).digest()
+        seed = int.from_bytes(hash_bytes[:2], 'big') % 1000  # Use first 2 bytes for seed
 
         # Colombian credit scores typically 150-950
         credit_score = 300 + (seed % 500)  # 300-799

@@ -67,7 +67,7 @@ class TestLoanService:
             result = await service.create_loan_application(
                 country_code="MX",
                 document_type="CURP",
-                document_number="KYBB010115HDFDFCX0",
+                document_number="FZPY690627HJCYITG3",
                 full_name="John Doe",
                 amount_requested=Decimal("10000"),
                 monthly_income=Decimal("50000"),
@@ -128,7 +128,7 @@ class TestLoanService:
             await service.create_loan_application(
                 country_code="MX",
                 document_type="CURP",
-                document_number="KYBB010115HDFDFCX0",
+                document_number="FZPY690627HJCYITG3",
                 full_name="John Doe",
                 amount_requested=Decimal("10000"),
                 monthly_income=Decimal("50000"),

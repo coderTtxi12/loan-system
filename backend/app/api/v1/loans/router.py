@@ -149,6 +149,7 @@ async def get_statistics(
 
     stats = await service.get_statistics(
         country_code=country_code.upper() if country_code else None,
+        use_cache=False,
     )
 
     return LoanStatisticsResponse(**stats)
